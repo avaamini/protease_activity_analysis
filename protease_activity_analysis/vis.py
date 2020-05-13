@@ -1,4 +1,5 @@
 """ Collection of data visualization functions """
+import mpld3
 import numpy as np
 import pandas
 
@@ -46,3 +47,16 @@ def roc_curves(y_true, y_score, pos_label=None):
 
     # TODO: ROC curves
     raise NotImplementedError
+
+def render_html_figures(figs):
+    """ Render a list of figures into an html document and render it.
+
+    Args:
+        figs (list, plt.Figure): a list of matplotlib figures to render
+    """
+
+    html = ""
+    for fig in figs:
+        html += mpld3.fig_to_html(fig)
+        html += "<hr>"
+    mpld3._server.serve(html)
