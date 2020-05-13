@@ -13,7 +13,7 @@ def load_syneos(data_path, id_path, sheet_names, stock_id):
         stock_id (str): name of ABN stock identifier for normalization
 
     Returns:
-        data_matrix (pd.DataFrame)
+        data_matrix (pandas.pivot_table)
     """
     # read syneos excel file
     usecols = [2,3,6,7,8]
@@ -43,18 +43,42 @@ def load_syneos(data_path, id_path, sheet_names, stock_id):
         columns='Compound')
     return data_matrix
 
-def process_data_batches(data_paths, id_paths, sheet_names, stock_ids):
-    """ Process several Syneos files, extract data
+def process_syneos_data(data_matrix, features_to_use):
+    """ Process syneos data. Keep relevant features and mean-normalize
 
     Args:
-        data_paths (list, str): list of paths to Syneos xlsx files
-        id_paths (list, str): list of paths to SampleType files
-        sheet_names (list, str): sheets to read in each file
-        stock_inds (list, str): list of strings of stock names for normalization
+        data_matrix (pandas.df): syneos MS data w/ sample ID and type
+        features_to_use (list, str): reporters to include
 
     Returns:
-        syneos_data data frame for each results files
+        norm_data_matrix (pandas.df)
     """
 
-    # TODO: this is just a loop through list of files
+    raise NotImplementedError
+
+def partition_data(data_matrix, p):
+    """ Partition data for training and testing classifiers
+
+    Args:
+        data_matrix (pandas.df): annotated w/ labels to partition wrt
+        p (float): proportion of samples to be included in training set
+
+    Returns:
+        df_train (pandas.df): training data
+        df_test (pandas.df): test data
+    """
+
+    raise NotImplementedError
+
+def filter_data(data_matrix, classes):
+    """ Filter data frame according to desired classes.
+
+    Args:
+        data_matrix (pandas.df)
+        classes (list, str): classes we want to included
+
+    Returns:
+        df_filtered (pandas.df): filtered data frame
+    """
+
     raise NotImplementedError
