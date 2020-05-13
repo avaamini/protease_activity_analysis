@@ -12,7 +12,7 @@ git clone git@github.com:apsoleimany/protease_activity_analysis.git
 
 
 ## Installation
-To use the protease activity analysis (paa) toolbox, first create the environment, and install the package.
+To use the protease activity analysis (paa) toolbox, first create the environment and then install the package:
 ```
 cd protease_activity_analysis
 conda env create -f environment.yml
@@ -23,12 +23,13 @@ pip install -e .
 ## Usage
 To enter the protease environment: `conda activate paa`
 
-Once inside the environment the package can be directly imported and used in a Python shell/script: 
+Once inside the environment, the package can be directly imported and used in a Python shell/script: 
 ```
 >>> import protease_activity_analysis as paa
 >>> paa.tests.test_installation()
 ```
 
-To deactivate after you're done: `conda deactivate`
+To deactivate after you are done: `conda deactivate`
 
 ## Contributing
+Code should be written in compliance with the [Python style guide](http://google.github.io/styleguide/pyguide.html).
