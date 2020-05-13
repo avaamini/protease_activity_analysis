@@ -32,4 +32,4 @@ Once inside the environment, the package can be directly imported and used in a 
 To deactivate after you are done: `conda deactivate`
 
 ## Contributing
-Code should be written in compliance with the [Python style guide](http://google.github.io/styleguide/pyguide.html).
+Code should be written in compliance with the [Google Python style guide](http://google.github.io/styleguide/pyguide.html) with [Google style docstrings](http://queirozf.com/entries/python-docstrings-reference-examples#google-style).
