@@ -1,3 +1,3 @@
-def test_pkg():
-    print("Sucessfully loaded package!")
+def test_installation():
+    print("Sucessfully accessing package!")
     return True
