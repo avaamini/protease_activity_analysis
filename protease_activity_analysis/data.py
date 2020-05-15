@@ -2,6 +2,7 @@
 import numpy as np
 import pandas
 
+
 # for future: load function can be made more modular for other data formats
 def load_syneos(data_path, id_path, sheet_names, stock_id):
     """ Read a Syneos file from a path and extract data
@@ -15,8 +16,10 @@ def load_syneos(data_path, id_path, sheet_names, stock_id):
     Returns:
         data_matrix (pandas.pivot_table)
     """
+
     # read syneos excel file
     usecols = [2,3,6,7,8]
+    
     sheet_data = pandas.read_excel(data_path,
         sheet_names, header=1, usecols=usecols)
 
@@ -53,8 +56,26 @@ def process_syneos_data(data_matrix, features_to_use):
     Returns:
         norm_data_matrix (pandas.df)
     """
+    
+    # only include the reporters that are actually part of the panel
+    new_matrix = pandas.DataFrame()
 
-    raise NotImplementedError
+    for i in range(len(features_to_use)):
+         if features_to_use[i] in data_matrix.columns :
+             new_matrix[features_to_use[i]] = data_matrix[features_to_use[i]]
+    
+    # perform mean normalization 
+    row_means = new_matrix.mean(axis=1)
+    num_reporters = len(new_matrix.columns)
+    num_samples = len(new_matrix.index)
+    
+    mean_normalized = pandas.DataFrame(index=np.arange(num_samples), columns=np.arange(num_reporters))
+    
+    for i in range(num_samples):
+        for j in range(num_reporters):
+            mean_normalized.iat[i,j] = new_matrix.iat[i,j]/row_means.iloc[j]
+    
+    return mean_normalized 
 
 def partition_data(data_matrix, p):
     """ Partition data for training and testing classifiers
