@@ -3,8 +3,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
+import seaborn as sns
 
-def plot_heatmap(data_matrix):
+def plot_heatmap(data_matrix, reporters):
     """ Plots and saves heat map fig
 
     Args:
@@ -14,11 +15,19 @@ def plot_heatmap(data_matrix):
         heat_map (fig): heatmap of data
     """
     
-    to_plot = data_matrix.drop(columns=["Sample ID", "Sample Type"])
+    reshape = data_matrix.unstack(0)
+    reshape = reshape.stack(0)
+    reshape = reshape.stack(0)
+    reshape = reshape.reset_index()
+    reshape = reshape.rename(columns={0:"values"})
+    print(reshape)
+    reshape = reshape.astype({"values":float})
+    print(reshape.dtypes)
     
-    to_plot = to_plot.astype(float)
+    #print(reshape.head)
     
-    plt.imshow(to_plot)
+    to_plot = reshape.pivot("Sample ID", "level_1", "values")
+    sns.heatmap(to_plot)
 
     return to_plot
 
