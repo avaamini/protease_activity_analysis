@@ -22,11 +22,11 @@ plex_20 = []
 
 normalized_matrix = paa.data.process_syneos_data(syneos_data, plex_14)
 
-normalized_matrix.columns = plex_14
 normalized_matrix.index = syneos_data.index[:-1]
-normalized_matrix.reset_index(inplace=True)
+normalized_matrix.columns = plex_14
 
-update = paa.vis.plot_heatmap(normalized_matrix)
+
+update = paa.vis.plot_heatmap(normalized_matrix, plex_14)
 
 print("DONE!")
 
