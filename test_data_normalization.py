@@ -21,6 +21,12 @@ plex_14 = ["1UR3_01", "2UR3_02", "3UR3_03", "4UR3_04", "5UR3_05", "6UR3_06",
 plex_20 = []
 
 normalized_matrix = paa.data.process_syneos_data(syneos_data, plex_14)
+
 normalized_matrix.columns = plex_14
-normalized_matrix.index = syneos_data.index
+normalized_matrix.index = syneos_data.index[:-1]
+normalized_matrix.reset_index(inplace=True)
+
+update = paa.vis.plot_heatmap(normalized_matrix)
+
+print("DONE!")
 
