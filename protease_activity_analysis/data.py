@@ -73,6 +73,8 @@ def process_syneos_data(data_matrix, features_to_use):
     for i in range(num_samples):
         for j in range(num_reporters):
             mean_normalized.iat[i,j] = new_matrix.iat[i,j]/row_means.iloc[j]
+            
+    mean_normalized=mean_normalized[:-1]         
 
     return mean_normalized
 
