@@ -60,7 +60,7 @@ def plot_heatmap(data_matrix, reporters):
 
     return 
 
-def plot_pca(data_matrix):
+def plot_pca(data_matrix, reporters):
     """ Plots and saves principal component analysis fig
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
@@ -69,11 +69,47 @@ def plot_pca(data_matrix):
         pca_scatter (fig): PCA scatter plot of data
     """
 
-    to_plot = data_matrix.drop(columns=["Sample ID", "Sample Type"])
-    
     # TODO: PCA
-    raise NotImplementedError
+    
+    undo_multiindex = data_matrix.reset_index()
+    
+    from sklearn.preprocessing import StandardScaler
+    
+    features = reporters
+    x = undo_multiindex.loc[:,features].values 
+    y = undo_multiindex.loc[:, ['Sample Type']].values 
+    x = StandardScaler().fit_transform(x)
+    
+    from sklearn.decomposition import PCA
+    
+    pca = PCA(n_components=2)
+    principalComponents = pca.fit_transform(x)
+    principalDf = pandas.DataFrame(data = principalComponents
+             , columns = ['principal component 1', 'principal component 2'])
+    finalDf = pandas.concat([principalDf, undo_multiindex[['Sample Type']]], axis = 1)
+    
+    fig = plt.figure(figsize = (8,8))
+    ax = fig.add_subplot(1,1,1) 
+    ax.set_xlabel('Principal Component 1', fontsize = 15)
+    ax.set_ylabel('Principal Component 2', fontsize = 15)
+    ax.set_title('2 component PCA', fontsize = 20)
+    targets = finalDf['Sample Type'].unique()
+    colors = ['r', 'g', 'b', 'y']
+    for target, color in zip(targets,colors):
+        indicesToKeep = finalDf['Sample Type'] == target
+        ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
+                   , finalDf.loc[indicesToKeep, 'principal component 2']
+                   , c = color
+                   , s = 50)
+    ax.legend(targets)
+    ax.grid()
 
+    
+    print(undo_multiindex.head)
+    
+    return x, finalDf
+
+    
 def plot_volcano(data_matrix):
     """ Plots and saves volcano plot figure
     Args:

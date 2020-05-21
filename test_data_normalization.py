@@ -4,8 +4,8 @@ import protease_activity_analysis as paa
 
 # test the data loading function
 test_dir = paa.tests.get_data_dir()
-data_path = os.path.join(test_dir, "Tx.01_3.5wks_Results.xlsx")
-id_path = os.path.join(test_dir, "Tx.01_3.5wks_SampleType.xlsx")
+data_path = os.path.join(test_dir, "2019_11.21_BatchBV.01 RESULTS.xlsx")
+id_path = os.path.join(test_dir, "BV.01_IDtoSampleType.xlsx")
 
 sheets = ['Rev3-CONH2-1', 'Rev3-CONH2-2']
 stock_name = "Stock"
@@ -25,8 +25,11 @@ normalized_matrix = paa.data.process_syneos_data(syneos_data, plex_14)
 normalized_matrix.index = syneos_data.index[:-1]
 normalized_matrix.columns = plex_14
 
+# to make a heatmap
+#update = paa.vis.plot_heatmap(normalized_matrix, plex_14)
 
-update = paa.vis.plot_heatmap(normalized_matrix, plex_14)
+# to perform PCA 
+pca, comps = paa.vis.plot_pca(normalized_matrix, plex_14)
 
 print("DONE!")
 
