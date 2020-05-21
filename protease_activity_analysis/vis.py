@@ -5,7 +5,64 @@ import numpy as np
 import pandas
 import seaborn as sns
 from plotnine import *
+import matplotlib.transforms as transforms
+from matplotlib.patches import Ellipse
 
+def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
+    """
+    Create a plot of the covariance confidence ellipse of *x* and *y*.
+
+    Parameters
+    ----------
+    x, y : array-like, shape (n, )
+        Input data.
+
+    ax : matplotlib.axes.Axes
+        The axes object to draw the ellipse into.
+
+    n_std : float
+        The number of standard deviations to determine the ellipse's radiuses.
+
+    Returns
+    -------
+    matplotlib.patches.Ellipse
+
+    Other parameters
+    ----------------
+    kwargs : `~matplotlib.patches.Patch` properties
+    """
+    if x.size != y.size:
+        raise ValueError("x and y must be the same size")
+
+    cov = np.cov(x, y)
+    pearson = cov[0, 1]/np.sqrt(cov[0, 0] * cov[1, 1])
+    # Using a special case to obtain the eigenvalues of this
+    # two-dimensionl dataset.
+    ell_radius_x = np.sqrt(1 + pearson)
+    ell_radius_y = np.sqrt(1 - pearson)
+    ellipse = Ellipse((0, 0),
+        width=ell_radius_x * 2,
+        height=ell_radius_y * 2,
+        facecolor=facecolor,
+        **kwargs)
+
+    # Calculating the stdandard deviation of x from
+    # the squareroot of the variance and multiplying
+    # with the given number of standard deviations.
+    scale_x = np.sqrt(cov[0, 0]) * n_std
+    mean_x = np.mean(x)
+
+    # calculating the stdandard deviation of y ...
+    scale_y = np.sqrt(cov[1, 1]) * n_std
+    mean_y = np.mean(y)
+
+    transf = transforms.Affine2D() \
+        .rotate_deg(45) \
+        .scale(scale_x, scale_y) \
+        .translate(mean_x, mean_y)
+
+    ellipse.set_transform(transf + ax.transData)
+    return ax.add_patch(ellipse)
 
 def plot_heatmap(data_matrix, reporters):
     """ Plots and saves heat map fig
@@ -68,16 +125,12 @@ def plot_pca(data_matrix, reporters):
         pca: PCA decomposition of data
         pca_scatter (fig): PCA scatter plot of data
     """
-
-    # TODO: PCA
-    
-    undo_multiindex = data_matrix.reset_index()
     
     from sklearn.preprocessing import StandardScaler
     
     features = reporters
-    x = undo_multiindex.loc[:,features].values 
-    y = undo_multiindex.loc[:, ['Sample Type']].values 
+    x = data_matrix.loc[:,features].values 
+    y = data_matrix.loc[:, ['Sample Type']].values 
     x = StandardScaler().fit_transform(x)
     
     from sklearn.decomposition import PCA
@@ -86,28 +139,29 @@ def plot_pca(data_matrix, reporters):
     principalComponents = pca.fit_transform(x)
     principalDf = pandas.DataFrame(data = principalComponents
              , columns = ['principal component 1', 'principal component 2'])
-    finalDf = pandas.concat([principalDf, undo_multiindex[['Sample Type']]], axis = 1)
+    finalDf = pandas.concat([principalDf, data_matrix[['Sample Type']]], axis = 1)
+    
     
     fig = plt.figure(figsize = (8,8))
     ax = fig.add_subplot(1,1,1) 
     ax.set_xlabel('Principal Component 1', fontsize = 15)
     ax.set_ylabel('Principal Component 2', fontsize = 15)
-    ax.set_title('2 component PCA', fontsize = 20)
+    ax.set_title('PCA Analysis of Inventiv data', fontsize = 20)
     targets = finalDf['Sample Type'].unique()
-    colors = ['r', 'g', 'b', 'y']
+    colors = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue']
     for target, color in zip(targets,colors):
         indicesToKeep = finalDf['Sample Type'] == target
         ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , c = color
                    , s = 50)
-    ax.legend(targets)
+        confidence_ellipse(finalDf.loc[indicesToKeep, 'principal component 1']
+                   , finalDf.loc[indicesToKeep, 'principal component 2']
+                   , ax, n_std = 2, edgecolor = color)
+    ax.legend(targets, loc='best', ncol=1, title = "Condition", fontsize=10)
     ax.grid()
-
     
-    print(undo_multiindex.head)
-    
-    return x, finalDf
+    return finalDf
 
     
 def plot_volcano(data_matrix):
