@@ -25,11 +25,17 @@ normalized_matrix = paa.data.process_syneos_data(syneos_data, plex_14)
 normalized_matrix.index = syneos_data.index[:-1]
 normalized_matrix.columns = plex_14
 
-# to make a heatmap
-#update = paa.vis.plot_heatmap(normalized_matrix, plex_14)
+""" to make a heatmap """
+update = paa.vis.plot_heatmap(normalized_matrix, plex_14)
+  
+""" to perform PCA """
+undo_multiindex = normalized_matrix.reset_index()
 
-# to perform PCA 
-pca, comps = paa.vis.plot_pca(normalized_matrix, plex_14)
+#if you want to filter for only some Sample Types, change code below
+#undo_multiindex = undo_multiindex [~undo_multiindex['Sample Type'].str.contains("LAM")]
+  
+pca = paa.vis.plot_pca(undo_multiindex, plex_14)
 
-print("DONE!")
+""" """
+
 

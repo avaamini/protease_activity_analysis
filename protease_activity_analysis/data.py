@@ -64,15 +64,15 @@ def process_syneos_data(data_matrix, features_to_use):
              new_matrix[features_to_use[i]] = data_matrix[features_to_use[i]]
 
     # perform mean normalization
-    row_means = new_matrix.mean(axis=1)
     num_reporters = len(new_matrix.columns)
     num_samples = len(new_matrix.index)
+    row_means = new_matrix.mean(axis = 1)
 
     mean_normalized = pandas.DataFrame(index=np.arange(num_samples), columns=np.arange(num_reporters))
 
     for i in range(num_samples):
         for j in range(num_reporters):
-            mean_normalized.iat[i,j] = new_matrix.iat[i,j]/row_means.iloc[j]
+            mean_normalized.iat[i,j] = new_matrix.iat[i,j]/row_means.iloc[i]
             
     mean_normalized=mean_normalized[:-1]         
 
