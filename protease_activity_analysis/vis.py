@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import seaborn as sns
+from plotnine import *
+
 
 def plot_heatmap(data_matrix, reporters):
     """ Plots and saves heat map fig
@@ -15,21 +17,48 @@ def plot_heatmap(data_matrix, reporters):
         heat_map (fig): heatmap of data
     """
     
-    reshape = data_matrix.unstack(0)
-    reshape = reshape.stack(0)
-    reshape = reshape.stack(0)
-    reshape = reshape.reset_index()
-    reshape = reshape.rename(columns={0:"values"})
-    print(reshape)
-    reshape = reshape.astype({"values":float})
-    print(reshape.dtypes)
+    undo_multiindex = data_matrix.unstack(0)
+    undo_multiindex = undo_multiindex.stack(0)
+    undo_multiindex = undo_multiindex.stack(0)
+    undo_multiindex = undo_multiindex.reset_index()
+    undo_multiindex = undo_multiindex.rename(columns={0:"z-scores", "level_1": "Reporters"})
+    undo_multiindex = undo_multiindex.astype({"z-scores":float})
     
-    #print(reshape.head)
+    # by category 
+    fig1 = (ggplot(undo_multiindex, aes('Reporters', 'Sample Type', fill = 'z-scores'))
+      + geom_tile(aes(width=0.95,  height=0.95))
+      + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
+      + coord_equal()
+      + theme(                                         
+              axis_ticks=element_blank(),
+              axis_text_x=element_text(angle=90),
+              legend_title_align='center')
+      
+    )
     
-    to_plot = reshape.pivot("Sample ID", "level_1", "values")
-    sns.heatmap(to_plot)
+    # by individual sample 
+    fig2 = (ggplot(undo_multiindex, aes('Reporters', 'Sample ID', fill = 'z-scores'))
+      + geom_tile(aes(width=0.95,  height=0.95))
+      + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
+      + coord_equal()
+      + theme(                                         
+              axis_ticks=element_blank(),
+              axis_text_x=element_text(angle=90),
+              legend_title_align='center')
+      + coord_flip()
+      
+    )
+    
+    fig1.draw()
+    #fig2.draw()
 
-    return to_plot
+    #to_plot = reshape.pivot("Sample ID", "Reporters", "values")
+    # fig, ax1 = plt.subplots(1,2)
+    # sns.heatmap(to_plot, ax=ax1)
+    # sns.heatmap(to_plot, ax=ax2)
+    # plt.show()
+
+    return 
 
 def plot_pca(data_matrix):
     """ Plots and saves principal component analysis fig
