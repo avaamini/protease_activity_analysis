@@ -65,3 +65,45 @@ def search_substrate(subs, screen_names, path):
             relevant_data[element] = screen_data[element].loc[subs]
 
     return relevant_data
+
+def find_substrates(protease, screen, p_threshold):
+    """ Apply thresholding to find substrates cleaved by protease of interest.
+
+    Args:
+        protease (str): protease of interest
+        screen (str): path to screening file to be parsed
+        p_threshold: adjusted p_value to threshold with
+
+    Returns:
+        cleaved_substrates (lst): list of csv substrates
+    """
+
+    raise NotImplementedError
+
+def find_sequences(substrates, screen_name):
+    """ Find sequences for substrates of interest
+
+    Args:
+        substrates (list, str): list of substrates of interest
+        screen_name (str): screen where the substrates come from
+
+    Returns:
+        substrate_sequences (pandas.df): df with corresponding sequences
+    """
+
+    raise NotImplementedError
+
+def make_logo(substrate_sequences, title, logo_format, size):
+    """ Make SeqLogo plot for substrate_sequences
+
+    Args:
+        substrate_sequences (pandas.df): 1st col is substrate name, 2nd col is AA sequence
+        title (str): title for SeqLogo
+        logo_format (str): 'svg', 'eps', 'pdf', 'jpeg', 'png'
+        size (str): 'small': 3.54" wide, 'medium': 5" wide, 'large': 7.25" wide, 'xlarge': 10.25" wide
+
+    Returns:
+        seqLogo
+    """
+
+    raise NotImplementedError
