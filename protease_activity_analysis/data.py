@@ -1,6 +1,7 @@
 """ Collection of data loading and processing functions """
 import numpy as np
 import pandas as pd
+import itertools
 
 
 # for future: load function can be made more modular for other data formats
