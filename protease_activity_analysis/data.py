@@ -21,7 +21,7 @@ def load_syneos(data_path, id_path, sheet_names, stock_id):
     # read syneos excel file
     usecols = [2,3,6,7,8]
 
-    sheet_data = pandas.read_excel(data_path,
+    sheet_data = pd.read_excel(data_path,
         sheet_names, header=1, usecols=usecols)
 
     df = None
@@ -32,7 +32,7 @@ def load_syneos(data_path, id_path, sheet_names, stock_id):
             df = df.append(data)
 
     # read SampleType file
-    sample_to_type = pandas.read_excel(id_path, header=0, index_col=0)
+    sample_to_type = pd.read_excel(id_path, header=0, index_col=0)
     sample_type = sample_to_type.loc[df["Sample ID"]]
     df['Sample Type'] = sample_type.values
 
@@ -41,7 +41,7 @@ def load_syneos(data_path, id_path, sheet_names, stock_id):
     df.loc[replace_inds,'Ratio'] = df.loc[replace_inds,'Area Ratio']
 
     # create data_matrix n x m where m is the number of reporters
-    data_matrix = pandas.pivot_table(df,
+    data_matrix = pd.pivot_table(df,
         values='Ratio',
         index=['Sample Type', 'Sample ID'],
         columns='Compound')
@@ -58,7 +58,7 @@ def process_syneos_data(data_matrix, features_to_use):
         norm_data_matrix (pandas.df)
     """
     # only include the reporters that are actually part of the panel
-    new_matrix = pandas.DataFrame()
+    new_matrix = pd.DataFrame()
 
     for i in range(len(features_to_use)):
          if features_to_use[i] in data_matrix.columns :
@@ -69,13 +69,12 @@ def process_syneos_data(data_matrix, features_to_use):
     num_samples = len(new_matrix.index)
     row_means = new_matrix.mean(axis = 1)
 
-    mean_normalized = pandas.DataFrame(index=np.arange(num_samples), columns=np.arange(num_reporters))
+    mean_normalized = pd.DataFrame(index=np.arange(num_samples), columns=np.arange(num_reporters))
 
     for i in range(num_samples):
         for j in range(num_reporters):
             mean_normalized.iat[i,j] = new_matrix.iat[i,j]/row_means.iloc[i]
             
-    mean_normalized=mean_normalized[:-1]         
 
     return mean_normalized
 
