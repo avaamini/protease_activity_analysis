@@ -144,8 +144,11 @@ def plot_pca(data_matrix, reporters):
     
     fig = plt.figure(figsize = (8,8))
     ax = fig.add_subplot(1,1,1) 
-    ax.set_xlabel('Principal Component 1', fontsize = 15)
-    ax.set_ylabel('Principal Component 2', fontsize = 15)
+    explained_variance = pca.explained_variance_ratio_
+    pc1 = explained_variance[0]*100
+    pc2 = explained_variance[1]*100
+    ax.set_xlabel('PC1 ('+ "%0.1f" % (pc1) + '% explained var.)', fontsize = 15)
+    ax.set_ylabel('PC2 ('+ "%0.1f" % (pc2) + '% explained var.)', fontsize = 15)
     ax.set_title('PCA Analysis of Inventiv data', fontsize = 20)
     targets = finalDf['Sample Type'].unique()
     colors = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue']
@@ -154,12 +157,18 @@ def plot_pca(data_matrix, reporters):
         ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , c = color
-                   , s = 50)
+                   , s = 50
+                   , label = target)
         confidence_ellipse(finalDf.loc[indicesToKeep, 'principal component 1']
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , ax, n_std = 2, edgecolor = color)
-    ax.legend(targets, loc='best', ncol=1, title = "Condition", fontsize=10)
-    ax.grid()
+   
+    l = ax.legend(loc='upper right', ncol=1, handlelength=0, fontsize=16, frameon=False)
+    
+    for handle, text in zip(l.legendHandles, l.get_texts()):
+        text.set_color(handle.get_facecolor()[0])
+        text.set_ha('right')
+        handle.set_color('white')
     
     return finalDf
 
