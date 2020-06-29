@@ -171,7 +171,8 @@ def plot_pca(data_matrix, reporters):
     
     return 
     
-def plot_volcano(data_matrix):
+
+def plot_volcano(data_matrix, group1, group2, plex):
     """ Plots and saves volcano plot figure
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
@@ -179,25 +180,83 @@ def plot_volcano(data_matrix):
         volcano (fig): volcano plot of data. saved
     """
     
-    conditions = data_matrix['Sample Type'].unique()
+    # transposed_norm = data_matrix.transpose()
     
-    grouped = data_matrix.groupby(['Sample Type'])
+    grouped = data_matrix.groupby(level="Sample Type")
     
-    x={}
-    trans = {}
-    means = pandas.DataFrame(columns = conditions)
-    variances = pandas.DataFrame(columns = conditions)
-    for condition in conditions: 
-        x[condition] = grouped.get_group(condition)
-        trans[condition] = x[condition].transpose()
-        means[condition] = x[condition].mean()
-        variances[condition]= x[condition].var()
-        print(len(x[condition]))
-           
-    print(means) 
-    print(variances) 
+    cond1 = grouped.get_group(group1)
+    cond1_means = cond1.mean()
+ 
+    cond2 = grouped.get_group(group2)
+    cond2_means = cond2.mean()
     
-    return 
+    fold_diff = cond2_means/cond1_means
+    volcano_data = pandas.DataFrame(fold_diff)
+    volcano_data.columns = ['Fold difference']
+    
+    
+    from scipy.stats import ttest_ind
+    
+    pvals = []
+    
+    for rep in plex :
+        result = ttest_ind(cond1[rep], cond2[rep])
+        pvals.append(result.pvalue)
+
+    volcano_data.insert(1, 'P-vals', pvals)
+    
+    from statsmodels.stats.multitest import multipletests
+
+    # Calculated the adjusted p-value using the Holm-Sidak method (as was done in Prism)
+    adjusted = multipletests(pvals=pvals, alpha=0.05, method="holm-sidak")
+    
+    volcano_data.insert(2, 'Adjusted p-vals', adjusted[1])
+    volcano_data.insert(3, '-log10(adjP)', -(np.log10(volcano_data['Adjusted p-vals'])))
+    volcano_data['-log10(adjP)'] = volcano_data['-log10(adjP)'].replace(np.inf, 15)
+            
+    signif = 1.3
+    
+    x = volcano_data['Fold difference']
+    y = volcano_data['-log10(adjP)']
+    sigvalues = np.ma.masked_where(y<signif, y)
+    fig = plt.figure(figsize = (8,8))
+    ax = fig.add_subplot(1,1,1) 
+    ax.scatter(x,y,c='k')
+    ax.scatter(x, sigvalues, c='r')
+    
+    # for x,y,rep in zip(x,sigvalues,volcano_data.index):
+    #     label = rep
+    #     # this method is called for each point
+    #     plt.annotate(label, # this is the text
+    #                  (x,y), # this is the point to label
+    #                  textcoords="offset points", # how to position the text
+    #                  xytext=(0, np.random.randint(5,10)), # distance from text to points (x,y)
+    #                  ha='center') # horizontal alignment can be left, right or center
+    
+    from adjustText import adjust_text
+    
+    texts = []
+    for x, y, l in zip(x,sigvalues,volcano_data.index):
+        texts.append(plt.text(x, y, l, size=12))
+    adjust_text(texts)
+    
+    ax.set_xlabel('Fold change (' + group2 + '/' + group1 +')', fontsize = 15)
+    ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 15)
+    left,right = ax.get_xlim()
+    ax.set_xlim(left=0, right = np.ceil(right))
+    ax.axhline(y=1.3, linestyle='--', color='lightgray')
+    ax.axvline(x=1, linestyle='--', color='lightgray')
+    
+    return
+    
+def plot_ROC(data_matrix, reporters):
+    """ Plots and saves principal component analysis fig
+    Args:
+        data_matrix (pandas.pivot_table): normalized data matrix
+    Returns:
+        pca_scatter (fig): PCA scatter plot of data
+    """
+     
 
 def roc_curves(y_true, y_score, pos_label=None):
     """ Performs ROC analysis and plots curves
@@ -214,7 +273,9 @@ def roc_curves(y_true, y_score, pos_label=None):
     """
 
     # TODO: ROC curves
+    
     raise NotImplementedError
+    
 
 def render_html_figures(figs):
     """ Render a list of figures into an html document and render it.
@@ -228,3 +289,5 @@ def render_html_figures(figs):
         html += mpld3.fig_to_html(fig)
         html += "<hr>"
     mpld3._server.serve(html)
+     
+
