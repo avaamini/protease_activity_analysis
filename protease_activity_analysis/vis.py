@@ -73,39 +73,39 @@ def plot_heatmap(data_matrix, reporters):
     Returns:
         heat_map (fig): heatmap of data
     """
-    
+
     undo_multiindex = data_matrix.unstack(0)
     undo_multiindex = undo_multiindex.stack(0)
     undo_multiindex = undo_multiindex.stack(0)
     undo_multiindex = undo_multiindex.reset_index()
     undo_multiindex = undo_multiindex.rename(columns={0:"z-scores", "level_1": "Reporters"})
     undo_multiindex = undo_multiindex.astype({"z-scores":float})
-    
-    # by category 
+
+    # by category
     fig1 = (ggplot(undo_multiindex, aes('Reporters', 'Sample Type', fill = 'z-scores'))
       + geom_tile(aes(width=0.95,  height=0.95))
       + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
       + coord_equal()
-      + theme(                                         
+      + theme(
               axis_ticks=element_blank(),
               axis_text_x=element_text(angle=90),
               legend_title_align='center')
-      
+
     )
-    
-    # by individual sample 
+
+    # by individual sample
     fig2 = (ggplot(undo_multiindex, aes('Reporters', 'Sample ID', fill = 'z-scores'))
       + geom_tile(aes(width=0.95,  height=0.95))
       + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
       + coord_equal()
-      + theme(                                         
+      + theme(
               axis_ticks=element_blank(),
               axis_text_x=element_text(angle=90),
               legend_title_align='center')
       + coord_flip()
-      
+
     )
-    
+
     fig1.draw()
     #fig2.draw()
 
@@ -115,7 +115,7 @@ def plot_heatmap(data_matrix, reporters):
     # sns.heatmap(to_plot, ax=ax2)
     # plt.show()
 
-    return 
+    return
 
 def plot_pca(data_matrix, reporters):
     """ Plots and saves principal component analysis fig
@@ -124,25 +124,25 @@ def plot_pca(data_matrix, reporters):
     Returns:
         pca_scatter (fig): PCA scatter plot of data
     """
-    
+
     from sklearn.preprocessing import StandardScaler
-    
+
     features = reporters
-    x = data_matrix.loc[:,features].values 
-    y = data_matrix.loc[:, ['Sample Type']].values 
+    x = data_matrix.loc[:,features].values
+    y = data_matrix.loc[:, ['Sample Type']].values
     x = StandardScaler().fit_transform(x)
-    
+
     from sklearn.decomposition import PCA
-    
+
     pca = PCA(n_components=2)
     principalComponents = pca.fit_transform(x)
     principalDf = pandas.DataFrame(data = principalComponents
              , columns = ['principal component 1', 'principal component 2'])
     finalDf = pandas.concat([principalDf, data_matrix[['Sample Type']]], axis = 1)
-    
-    
+
+
     fig = plt.figure(figsize = (8,8))
-    ax = fig.add_subplot(1,1,1) 
+    ax = fig.add_subplot(1,1,1)
     explained_variance = pca.explained_variance_ratio_
     pc1 = explained_variance[0]*100
     pc2 = explained_variance[1]*100
@@ -161,16 +161,16 @@ def plot_pca(data_matrix, reporters):
         confidence_ellipse(finalDf.loc[indicesToKeep, 'principal component 1']
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , ax, n_std = 2, edgecolor = color)
-   
+
     l = ax.legend(loc='upper right', ncol=1, handlelength=0, fontsize=16, frameon=False)
-    
+
     for handle, text in zip(l.legendHandles, l.get_texts()):
         text.set_color(handle.get_facecolor()[0])
         text.set_ha('right')
         handle.set_color('white')
-    
-    return 
-    
+
+    return
+
 
 def plot_volcano(data_matrix, group1, group2, plex):
     """ Plots and saves volcano plot figure
@@ -179,51 +179,51 @@ def plot_volcano(data_matrix, group1, group2, plex):
     Returns:
         volcano (fig): volcano plot of data. saved
     """
-    
+
     # transposed_norm = data_matrix.transpose()
-    
+
     grouped = data_matrix.groupby(level="Sample Type")
-    
+
     cond1 = grouped.get_group(group1)
     cond1_means = cond1.mean()
- 
+
     cond2 = grouped.get_group(group2)
     cond2_means = cond2.mean()
-    
+
     fold_diff = cond2_means/cond1_means
     volcano_data = pandas.DataFrame(fold_diff)
     volcano_data.columns = ['Fold difference']
-    
-    
+
+
     from scipy.stats import ttest_ind
-    
+
     pvals = []
-    
+
     for rep in plex :
         result = ttest_ind(cond1[rep], cond2[rep])
         pvals.append(result.pvalue)
 
     volcano_data.insert(1, 'P-vals', pvals)
-    
+
     from statsmodels.stats.multitest import multipletests
 
     # Calculated the adjusted p-value using the Holm-Sidak method (as was done in Prism)
     adjusted = multipletests(pvals=pvals, alpha=0.05, method="holm-sidak")
-    
+
     volcano_data.insert(2, 'Adjusted p-vals', adjusted[1])
     volcano_data.insert(3, '-log10(adjP)', -(np.log10(volcano_data['Adjusted p-vals'])))
     volcano_data['-log10(adjP)'] = volcano_data['-log10(adjP)'].replace(np.inf, 15)
-            
+
     signif = 1.3
-    
+
     x = volcano_data['Fold difference']
     y = volcano_data['-log10(adjP)']
     sigvalues = np.ma.masked_where(y<signif, y)
     fig = plt.figure(figsize = (8,8))
-    ax = fig.add_subplot(1,1,1) 
+    ax = fig.add_subplot(1,1,1)
     ax.scatter(x,y,c='k')
     ax.scatter(x, sigvalues, c='r')
-    
+
     # for x,y,rep in zip(x,sigvalues,volcano_data.index):
     #     label = rep
     #     # this method is called for each point
@@ -232,23 +232,23 @@ def plot_volcano(data_matrix, group1, group2, plex):
     #                  textcoords="offset points", # how to position the text
     #                  xytext=(0, np.random.randint(5,10)), # distance from text to points (x,y)
     #                  ha='center') # horizontal alignment can be left, right or center
-    
+
     from adjustText import adjust_text
-    
+
     texts = []
     for x, y, l in zip(x,sigvalues,volcano_data.index):
         texts.append(plt.text(x, y, l, size=12))
     adjust_text(texts)
-    
+
     ax.set_xlabel('Fold change (' + group2 + '/' + group1 +')', fontsize = 15)
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 15)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
     ax.axhline(y=1.3, linestyle='--', color='lightgray')
     ax.axvline(x=1, linestyle='--', color='lightgray')
-    
-    return
-    
+
+    return fig
+
 def plot_ROC(data_matrix, reporters):
     """ Plots and saves principal component analysis fig
     Args:
@@ -256,7 +256,7 @@ def plot_ROC(data_matrix, reporters):
     Returns:
         pca_scatter (fig): PCA scatter plot of data
     """
-     
+
 
 def roc_curves(y_true, y_score, pos_label=None):
     """ Performs ROC analysis and plots curves
@@ -273,9 +273,9 @@ def roc_curves(y_true, y_score, pos_label=None):
     """
 
     # TODO: ROC curves
-    
+
     raise NotImplementedError
-    
+
 
 def render_html_figures(figs):
     """ Render a list of figures into an html document and render it.
@@ -289,5 +289,3 @@ def render_html_figures(figs):
         html += mpld3.fig_to_html(fig)
         html += "<hr>"
     mpld3._server.serve(html)
-     
-
