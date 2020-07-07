@@ -1,11 +1,9 @@
 import os
-import matplotlib
-import matplotlib.pyplot as plt
 import protease_activity_analysis as paa
 import argparse
 
 # To run: 
-# python tests/test_urine_analysis.py --in_data_path="2019_11.21_BatchBV.01 RESULTS.xlsx" --in_type_path="BV.01_IDtoSampleType.xlsx" -n Rev3-CONH2-1 Rev3-CONH2-2 --stock="Stock" --num_plex=14
+# python tests/test_urine_volcano.py --in_data_path="2019_11.21_BatchBV.01 RESULTS.xlsx" --in_type_path="BV.01_IDtoSampleType.xlsx" -n Rev3-CONH2-1 Rev3-CONH2-2 --stock="Stock" --num_plex=14 --group1="Control" --group2="S"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--in_data_path', help='path to load data from')
@@ -13,6 +11,8 @@ parser.add_argument('--in_type_path', help='path to load Sample Types from')
 parser.add_argument('-n', '--sheets', type=str, nargs="*")
 parser.add_argument('--stock', help='name of the stock sample in the Inventiv file')
 parser.add_argument('--num_plex', type=int, help='number of reporters (14 or 20)')
+parser.add_argument('--group1', type=str)
+parser.add_argument('--group2', type=str)
 args = parser.parse_args()
 
 data_dir = paa.tests.get_data_dir()
@@ -50,18 +50,6 @@ normalized_matrix = paa.data.process_syneos_data(syneos_data, plex)
 normalized_matrix.index = syneos_data.index
 normalized_matrix.columns = renamed
 
-# """ to make a heatmap """
-#heatmap = paa.vis.plot_heatmap(normalized_matrix, renamed)
-
-# """ to perform PCA """
-undo_multiindex = normalized_matrix.reset_index()
-
-# #if you want to filter for only some Sample Types, change code below
-#undo_multiindex = undo_multiindex [~undo_multiindex['Sample Type'].str.contains("LAM")]
-
-pca = paa.vis.plot_pca(undo_multiindex, renamed)
-
 """ to create volcano plots """
-volcano = paa.vis.plot_volcano(normalized_matrix, "Control", "S", renamed, data_dir)
+volcano = paa.vis.plot_volcano(normalized_matrix, args.group1, args.group2, renamed, data_dir)
 
-#volcano.savefig(os.path.join(data_path, "volcano.pdf")

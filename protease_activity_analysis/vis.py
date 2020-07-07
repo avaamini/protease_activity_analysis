@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import seaborn as sns
-# from plotnine import *
+#from plotnine import *
 import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
 
@@ -77,7 +77,8 @@ def plot_heatmap(data_matrix, reporters):
     Returns:
         heat_map (fig): heatmap of data
     """
-
+    
+    from plotnine import ggplot, geom_tile, aes, scale_fill_gradient2, coord_equal, themes
     undo_multiindex = data_matrix.unstack(0)
     undo_multiindex = undo_multiindex.stack(0)
     undo_multiindex = undo_multiindex.stack(0)
@@ -86,7 +87,8 @@ def plot_heatmap(data_matrix, reporters):
     undo_multiindex = undo_multiindex.astype({"z-scores":float})
 
     # by category
-    fig1 = (ggplot(undo_multiindex, aes('Reporters', 'Sample Type', fill = 'z-scores'))
+    fig1 = (
+(undo_multiindex, aes('Reporters', 'Sample Type', fill = 'z-scores'))
       + geom_tile(aes(width=0.95,  height=0.95))
       + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
       + coord_equal()
@@ -98,17 +100,17 @@ def plot_heatmap(data_matrix, reporters):
     )
 
     # by individual sample
-    fig2 = (ggplot(undo_multiindex, aes('Reporters', 'Sample ID', fill = 'z-scores'))
-      + geom_tile(aes(width=0.95,  height=0.95))
-      + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
-      + coord_equal()
-      + theme(
-              axis_ticks=element_blank(),
-              axis_text_x=element_text(angle=90),
-              legend_title_align='center')
-      + coord_flip()
+   # fig2 = (ggplot(undo_multiindex, aes('Reporters', 'Sample ID', fill = 'z-scores'))
+    #  + geom_tile(aes(width=0.95,  height=0.95))
+    #  + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
+    #  + coord_equal()
+   #   + theme(
+  #            axis_ticks=element_blank(),
+   #           axis_text_x=element_text(angle=90),
+     #         legend_title_align='center')
+    #  + coord_flip()
 
-    )
+   # )
 
     fig1.draw()
     #fig2.draw()
@@ -119,9 +121,9 @@ def plot_heatmap(data_matrix, reporters):
     # sns.heatmap(to_plot, ax=ax2)
     # plt.show()
 
-    return
+    return fig1
 
-def plot_pca(data_matrix, reporters):
+def plot_pca(data_matrix, reporters, data_path):
     """ Plots and saves principal component analysis fig
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
@@ -172,11 +174,12 @@ def plot_pca(data_matrix, reporters):
         text.set_color(handle.get_facecolor()[0])
         text.set_ha('right')
         handle.set_color('white')
+    
+    fig.savefig(os.path.join(data_path, "urine_pca.pdf"))
+    return  
 
-    return
 
-
-def plot_volcano(data_matrix, group1, group2, plex):
+def plot_volcano(data_matrix, group1, group2, plex, data_path):
     """ Plots and saves volcano plot figure
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
@@ -250,8 +253,9 @@ def plot_volcano(data_matrix, group1, group2, plex):
     ax.set_xlim(left=0, right = np.ceil(right))
     ax.axhline(y=1.3, linestyle='--', color='lightgray')
     ax.axvline(x=1, linestyle='--', color='lightgray')
-
-    return fig
+    
+    fig.savefig(os.path.join(data_path, "volcano.pdf"))
+    return 
 
 def plot_ROC(data_matrix, reporters):
     """ Plots and saves principal component analysis fig

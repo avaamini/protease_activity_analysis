@@ -59,23 +59,20 @@ def process_syneos_data(data_matrix, features_to_use):
     """
     # only include the reporters that are actually part of the panel
     new_matrix = pd.DataFrame()
-
     for i in range(len(features_to_use)):
          if features_to_use[i] in data_matrix.columns :
              new_matrix[features_to_use[i]] = data_matrix[features_to_use[i]]
-
+    
     # perform mean normalization
     num_reporters = len(new_matrix.columns)
     num_samples = len(new_matrix.index)
     row_means = new_matrix.mean(axis = 1)
-
+    
     mean_normalized = pd.DataFrame(index=np.arange(num_samples), columns=np.arange(num_reporters))
 
     for i in range(num_samples):
         for j in range(num_reporters):
             mean_normalized.iat[i,j] = new_matrix.iat[i,j]/row_means.iloc[i] 
-    
-    print(mean_normalized)
     return mean_normalized
 
 def partition_data(data_matrix, p):
