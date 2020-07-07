@@ -4,9 +4,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import seaborn as sns
-from plotnine import *
+# from plotnine import *
 import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
+
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
 def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
     """
@@ -289,3 +293,103 @@ def render_html_figures(figs):
         html += mpld3.fig_to_html(fig)
         html += "<hr>"
     mpld3._server.serve(html)
+
+
+def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
+    """ Analyze kinetic data based on fold change + initial rate
+
+        Args:
+            - in_path (str): path to raw data, columns = timepoints, rows = substrates, cell 0,0 = name of "protease/sample - probe name" e.g. 'MMP13-Substrate'
+            - out_path (str): path to store the results
+            - fc_time (int): time in min at which to take the fold change
+            - linear_time (int): time in min to take initial speed
+            - blank (int): 1 = blank data provided, 0 = no blank data provided [default]
+
+
+        Returns:
+            - fc (pandas.DataFrame): Fold change for all samples in fluorescence from time 0
+            - fc_x (pandas.DataFrame): Fold change at time x
+            - z_score_fc (pandas.core.series.Series): Z_score of fold change at fc_time
+            - init_rate (pandas.core.series.Series): Initial rate
+            - z_score_rate (pandas.core.series.Series): Z_score of initial rates
+        """
+    def plot_kinetic(data, title, ylabel, path):
+        # Calculate the average and the std of replicates
+        mean = data.groupby(data.columns[0]).agg([np.mean])
+        mean.columns = mean.columns.droplevel(1)
+        std = data.groupby(data.columns[0]).agg([double_std])
+        std.columns = std.columns.droplevel(1)
+
+        # Plot data
+        mean_t = mean.T
+        ax = mean_t.plot(legend=True, marker='.', markersize=10, figsize=(7, 5), yerr=std.T)
+        ax.legend(loc='best', fontsize=12)
+        ax.set_xlabel('Time (min)', fontsize=14)
+        ax.set_ylabel(ylabel, fontsize=14)
+        ax.set_title(title, fontsize=15)
+        ax.figure.savefig(path)
+
+        return ax
+
+    # Calculate z score of pandas.Series or pandas.Dataframe
+    def z_score(data):
+        z_s = ((data - data.mean()) / data.std(ddof=0))
+        return z_s
+
+    def double_std(array):
+        return np.std(array) * 2
+
+    # Import kinetic data
+    raw = pd.read_excel(in_path)
+
+    # Get name of sample being screened against and probe-type being screened
+    info = str(raw.columns[0]).split('-')
+    prot = info[0]
+    # print('prot:', prot)
+    sub = info[1]
+    # print('sub:', sub)
+
+    # Create new directory to save outputs with name of 'prot'
+    path = os.path.join(out_path, prot)
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print('Directory created', path)
+
+    # Plot raw kinetic data
+    plot_kinetic(raw, prot, 'Intensity', path=str(path) + '/' + str(prot) + '_raw_kinetic_data.pdf')
+
+    # Find initial rate in intensity/min
+    raw_mean = raw.groupby(raw.columns[0]).agg([np.mean])
+    raw_mean.columns = raw_mean.columns.droplevel(1)
+    init_rate = (raw_mean[linear_time] - raw_mean[0]) / (linear_time)
+    init_rate = init_rate.to_frame(name='Initial rate')
+
+    # Calculate z_score based on init_rate
+    z_score_rate = z_score(init_rate)
+    # z_score_rate= z_score_rate.to_frame(name='Z-scored initial rate')
+
+    # Find the mean fold change for all substrates at all times
+    fc_mean = raw_mean.div(raw_mean[0], axis=0)
+
+    # Find the fold change for all substrates and replicates at all times
+    raw2 = raw.set_index(raw.columns[0])
+    fc = raw2.div(raw2[0], axis=0)
+
+    # Find the fold-change at time fc_time (x)
+    fc_x = fc_mean[fc_time]
+
+    # Calculate z_score by fold change
+    z_score_fc = z_score(fc_x)
+    z_score_fc = z_score_fc.to_frame(name='Z-scored fold change')
+
+    # Plot fc kinetic data
+    data = fc.reset_index()
+    plot_kinetic(data, prot, 'Fold change', path=str(path) + '/' + str(prot) + '_fc_kinetic_data.pdf')
+
+    fc.to_csv(str(path) + '/' + str(prot) + '_fc.csv')
+    fc_x.to_csv(str(path) + '/' + str(prot) + '_fc_x.csv')
+    z_score_fc.to_csv(str(path) + '/' + str(prot) + '_z_score_fc.csv')
+    init_rate.to_csv(str(path) + '/' + str(prot) + '_init_rate.csv')
+    z_score_rate.to_csv(str(path) + '/' + str(prot) + '_z_score_rate.csv')
+
+    return fc, fc_x, z_score_fc, init_rate, z_score_rate
