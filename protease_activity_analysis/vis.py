@@ -77,7 +77,7 @@ def plot_heatmap(data_matrix, reporters):
     Returns:
         heat_map (fig): heatmap of data
     """
-    
+
     from plotnine import ggplot, geom_tile, aes, scale_fill_gradient2, coord_equal, themes
     undo_multiindex = data_matrix.unstack(0)
     undo_multiindex = undo_multiindex.stack(0)
@@ -174,9 +174,9 @@ def plot_pca(data_matrix, reporters, data_path):
         text.set_color(handle.get_facecolor()[0])
         text.set_ha('right')
         handle.set_color('white')
-    
+
     fig.savefig(os.path.join(data_path, "urine_pca.pdf"))
-    return  
+    return
 
 
 def plot_volcano(data_matrix, group1, group2, plex, data_path):
@@ -250,12 +250,15 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path):
     ax.set_xlabel('Fold change (' + group2 + '/' + group1 +')', fontsize = 15)
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 15)
     left,right = ax.get_xlim()
-    ax.set_xlim(left=0, right = np.ceil(right))
+    # ax.set_xlim(left=0, right = np.ceil(right))
+    ax.set_xlim(left=0.25, right=1.75) # hard coded for STM data
+    ax.set_xticks(np.arange(0.25, 1.75, step=0.25)) # hard coded for STM data
     ax.axhline(y=1.3, linestyle='--', color='lightgray')
     ax.axvline(x=1, linestyle='--', color='lightgray')
-    
+    ax.set_ylim(bottom=0, top=5) # hard coded for STM data
+
     fig.savefig(os.path.join(data_path, "volcano.pdf"))
-    return 
+    return
 
 def plot_ROC(data_matrix, reporters):
     """ Plots and saves principal component analysis fig

@@ -47,32 +47,48 @@ def load_syneos(data_path, id_path, sheet_names, stock_id):
         columns='Compound')
     return data_matrix
 
-def process_syneos_data(data_matrix, features_to_use):
+def process_syneos_data(data_matrix, features_to_use, sample_ID_to_use=None):
     """ Process syneos data. Keep relevant features and mean-normalize
 
     Args:
         data_matrix (pandas.df): syneos MS data w/ sample ID and type
         features_to_use (list, str): reporters to include
+        sample_ID_to_use (str): contains (sub)string indicator of samples to
+            include, e.g. "2B" or "2hr" to denote 2hr samples. default=None
 
     Returns:
         norm_data_matrix (pandas.df)
     """
-    # only include the reporters that are actually part of the panel
-    new_matrix = pd.DataFrame()
-    for i in range(len(features_to_use)):
-         if features_to_use[i] in data_matrix.columns :
-             new_matrix[features_to_use[i]] = data_matrix[features_to_use[i]]
-    
-    # perform mean normalization
-    num_reporters = len(new_matrix.columns)
-    num_samples = len(new_matrix.index)
-    row_means = new_matrix.mean(axis = 1)
-    
-    mean_normalized = pd.DataFrame(index=np.arange(num_samples), columns=np.arange(num_reporters))
 
-    for i in range(num_samples):
-        for j in range(num_reporters):
-            mean_normalized.iat[i,j] = new_matrix.iat[i,j]/row_means.iloc[i] 
+    def eliminate_zero_row(row):
+        """Identifies whether a row has two or more features that are zero-valued.
+
+        Args:
+            row: data frame rows of syneos data
+
+        Returns:
+            log: array of booleans indicating whether row has two or more features
+                that are zero-valued (True == >= 2 zero-valued features)
+        """
+        num_zeros = sum([x==0 for x in row])
+        log = (num_zeros >= 2)
+        return log
+
+    # only include the reporters that are actually part of the panel
+    new_matrix = pd.DataFrame(data_matrix[features_to_use])
+
+    # eliminate those samples that have two or more 0 values for the reporters
+    zero_rows = np.array(new_matrix.apply(eliminate_zero_row, axis=1))
+    filtered_matrix = new_matrix[~zero_rows]
+
+    # eliminate those samples that do not meet the sample ID name criterion
+    if sample_ID_to_use != None:
+        undo_multi = filtered_matrix.reset_index()
+        filtered_matrix = undo_multi[undo_multi['Sample ID'].str.contains(sample_ID_to_use)]
+        filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID']) # reset index
+
+    mean_normalized = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
+
     return mean_normalized
 
 def partition_data(data_matrix, p):
