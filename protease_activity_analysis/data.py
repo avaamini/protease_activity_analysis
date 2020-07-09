@@ -53,6 +53,8 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     Args:
         data_matrix (pandas.df): syneos MS data w/ sample ID and type
         features_to_use (list, str): reporters to include
+        stock_id (str): Sample Type ID for stock to use for normalization
+        sample_type_to_use (list, str): sample types to use
         sample_ID_to_use (str): contains (sub)string indicator of samples to
             include, e.g. "2B" or "2hr" to denote 2hr samples. default=None
 
@@ -89,8 +91,9 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     # eliminate those samples that do not meet the sample ID name criterion
     if sample_ID_to_use != None:
         undo_multi = filtered_matrix.reset_index()
-        filtered_matrix = undo_multi[undo_multi['Sample ID'].str.contains(sample_ID_to_use)]
-        filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID']) # reset index
+        filtered_matrix = undo_multi[undo_multi['Sample ID'].str.contains(
+            sample_ID_to_use)]
+        filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
 
     # eliminate those samples that do not meet the sample type name criterion
     if sample_type_to_use != None:
