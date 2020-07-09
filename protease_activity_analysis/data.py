@@ -5,14 +5,13 @@ import itertools
 
 
 # for future: load function can be made more modular for other data formats
-def load_syneos(data_path, id_path, sheet_names, stock_id):
+def load_syneos(data_path, id_path, sheet_names):
     """ Read a Syneos file from a path and extract data
 
     Args:
         data_path (str): path to the Syneos xlsx file
         id_path (str): path to the SampleType xlsx file
         sheet_names (list, str): sheets to read
-        stock_id (str): name of ABN stock identifier for normalization
 
     Returns:
         data_matrix (pandas.pivot_table)
@@ -47,7 +46,8 @@ def load_syneos(data_path, id_path, sheet_names, stock_id):
         columns='Compound')
     return data_matrix
 
-def process_syneos_data(data_matrix, features_to_use, sample_ID_to_use=None):
+def process_syneos_data(data_matrix, features_to_use, stock_id,
+    sample_type_to_use=None, sample_ID_to_use=None):
     """ Process syneos data. Keep relevant features and mean-normalize
 
     Args:
@@ -81,12 +81,23 @@ def process_syneos_data(data_matrix, features_to_use, sample_ID_to_use=None):
     zero_rows = np.array(new_matrix.apply(eliminate_zero_row, axis=1))
     filtered_matrix = new_matrix[~zero_rows]
 
+    # normalize everything to stock
+    stock = filtered_matrix.loc[('Stock',stock_id)].to_numpy()
+    filtered_matrix = filtered_matrix / stock
+    filtered_matrix = filtered_matrix.drop('Stock', level='Sample Type')
+
     # eliminate those samples that do not meet the sample ID name criterion
     if sample_ID_to_use != None:
         undo_multi = filtered_matrix.reset_index()
         filtered_matrix = undo_multi[undo_multi['Sample ID'].str.contains(sample_ID_to_use)]
         filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID']) # reset index
 
+    # eliminate those samples that do not meet the sample type name criterion
+    if sample_type_to_use != None:
+        filtered_matrix = filtered_matrix[filtered_matrix.index.isin(
+            sample_type_to_use, level=0)]
+
+    # mean normalization
     mean_normalized = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
 
     return mean_normalized

@@ -123,7 +123,7 @@ def plot_heatmap(data_matrix, reporters):
 
     return fig1
 
-def plot_pca(data_matrix, reporters, data_path):
+def plot_pca(data_matrix, reporters, data_path, file_name):
     """ Plots and saves principal component analysis fig
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
@@ -134,7 +134,9 @@ def plot_pca(data_matrix, reporters, data_path):
     from sklearn.preprocessing import StandardScaler
 
     features = reporters
+    data_matrix = data_matrix.reset_index()
     x = data_matrix.loc[:,features].values
+    # y = data_matrix.index.get_level_values('Sample Type').values
     y = data_matrix.loc[:, ['Sample Type']].values
     x = StandardScaler().fit_transform(x)
 
@@ -175,11 +177,12 @@ def plot_pca(data_matrix, reporters, data_path):
         text.set_ha('right')
         handle.set_color('white')
 
-    fig.savefig(os.path.join(data_path, "urine_pca.pdf"))
+    file = file_name + "_PCA.pdf"
+    fig.savefig(os.path.join(data_path, file))
     return
 
 
-def plot_volcano(data_matrix, group1, group2, plex, data_path):
+def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     """ Plots and saves volcano plot figure
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
@@ -250,14 +253,15 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path):
     ax.set_xlabel('Fold change (' + group2 + '/' + group1 +')', fontsize = 15)
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 15)
     left,right = ax.get_xlim()
-    # ax.set_xlim(left=0, right = np.ceil(right))
-    ax.set_xlim(left=0.25, right=1.75) # hard coded for STM data
-    ax.set_xticks(np.arange(0.25, 1.75, step=0.25)) # hard coded for STM data
+    ax.set_xlim(left=0, right = np.ceil(right))
+    # ax.set_xlim(left=0.25, right=1.75) # hard coded for STM data
+    # ax.set_xticks(np.arange(0.25, 1.75, step=0.25)) # hard coded for STM data
     ax.axhline(y=1.3, linestyle='--', color='lightgray')
     ax.axvline(x=1, linestyle='--', color='lightgray')
-    ax.set_ylim(bottom=0, top=5) # hard coded for STM data
+    # ax.set_ylim(bottom=0, top=5) # hard coded for STM data
 
-    fig.savefig(os.path.join(data_path, "volcano.pdf"))
+    file = file_name + "_volcano.pdf"
+    fig.savefig(os.path.join(data_path, file))
     return
 
 def plot_ROC(data_matrix, reporters):
