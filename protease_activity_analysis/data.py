@@ -2,9 +2,8 @@
 import numpy as np
 import pandas as pd
 import itertools
+import os
 
-
-# for future: load function can be made more modular for other data formats
 def load_syneos(data_path, id_path, sheet_names):
     """ Read a Syneos file from a path and extract data
 
@@ -63,13 +62,13 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     """
 
     def eliminate_zero_row(row):
-        """Identifies whether a row has two or more features that are zero-valued.
+        """Identifies whether a row has two or more features that are zero.
 
         Args:
             row: data frame rows of syneos data
 
         Returns:
-            log: array of booleans indicating whether row has two or more features
+            log: array of booleans indicating whether row has >= two features
                 that are zero-valued (True == >= 2 zero-valued features)
         """
         num_zeros = sum([x==0 for x in row])
@@ -97,47 +96,73 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
 
     # eliminate those samples that do not meet the sample type name criterion
     if sample_type_to_use != None:
-        filtered_matrix = filtered_matrix[filtered_matrix.index.isin(
-            sample_type_to_use, level=0)]
+        undo_multi = filtered_matrix.reset_index()
+        filtered_matrix = undo_multi[undo_multi['Sample Type'].isin(sample_type_to_use)]
+        filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
 
     # mean normalization
     mean_normalized = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
 
     return mean_normalized
 
-def partition_data(data_matrix, p):
-    """ Partition data for training and testing classifiers
+def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
+    neg_classes=None, neg_class=None):
+    """ Creates a dataset for binary classification.
 
     Args:
-        data_matrix (pandas.df): annotated w/ labels to partition wrt
-        p (float): proportion of samples to be included in training set
+        data_dir (str): path to the directory where pickle files are
+        file_list (list, str): list of pickle file names as in data_dir
+        pos_classes (list, str): list of Sample Type labels to be considered in
+            the positive class
+        pos_class (str): what to rename the positive class
+        neg_classes (list, str): list of Sample Type labels to be considered in
+            the negative class
+        neg_class (str): what to rename the negative class
 
     Returns:
-        df_train (pandas.df): training data
-        df_test (pandas.df): test data
+        X (np array): matrix of size n x m of the data, where n is the number of
+            samples and m is the number of features
+        Y (np array): matrix of size n x 1 containing the classification labels
+            for the samples in the dataset
+        data (pd dataframe): pandas data frame containing X, Y, Sample Type, and
+            Sample Type ID
     """
+    # read pickle files in file list and load the data
+    matrices = []
+    for f in file_list:
+        path = os.path.join(data_dir, f)
+        data = pd.read_pickle(path)
+        matrices.append(data)
+    data = pd.concat(matrices)
 
-    raise NotImplementedError
+    # get Sample Type and copy for class labeling
+    sample_type = data.index.get_level_values('Sample Type').to_numpy()
+    class_labels = np.copy(sample_type)
 
-def filter_data(data_matrix, classes):
-    """ Filter data frame according to desired classes.
+    # convert positive classes if necessary
+    if pos_classes != None:
+        pos_inds = [i for i, val in enumerate(sample_type) if val in pos_classes]
+        class_labels[pos_inds] = pos_class
+    # convert negative classes if necessary
+    if neg_classes != None:
+        neg_inds = [i for i, val in enumerate(sample_type) if val in neg_classes]
+        class_labels[neg_inds] = neg_class
 
-    Args:
-        data_matrix (pandas.df)
-        classes (list, str): classes we want to included
+    # prepare the data and return
+    data = data.reset_index()
+    data['Class Labels'] = class_labels
+    data = data.set_index(['Sample Type', 'Sample ID', 'Class Labels'])
+    X = data.to_numpy()
+    Y = data.index.get_level_values('Class Labels').to_numpy()
 
-    Returns:
-        df_filtered (pandas.df): filtered data frame
-    """
-
-    raise NotImplementedError
-
+    return X, Y, data
 
 def read_names_from_uniprot(data_path, sheet_names):
     """ Read a excel file with Uniprot data and extract all gene names
 
     Args:
-        data_path (str): path to the uniprot xlsx file most be exported from Uniprot and contain a "Gene name column"
+        data_path (str): path to the uniprot xlsx file most be exported from
+            Uniprot and contain a "Gene name column"
         sheet_names (list, str): sheets to read
 
     Returns:
@@ -145,8 +170,7 @@ def read_names_from_uniprot(data_path, sheet_names):
     """
 
     # Import excel file
-    sheet_data = pd.read_excel(data_path, sheet_names,
-                               header=0)
+    sheet_data = pd.read_excel(data_path, sheet_names, header=0)
 
     all_names = {}
     for sheet in sheet_names:
