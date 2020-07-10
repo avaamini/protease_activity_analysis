@@ -191,19 +191,31 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     """
 
     # transposed_norm = data_matrix.transpose()
-
+    print(data_matrix.head)
     grouped = data_matrix.groupby(level="Sample Type")
+    
+    if group1==None and group2==None:
+        targets = data_matrix.index.levels[0]
+        group1 = targets[0]
+        cond1 = grouped.get_group(targets[0])
+        cond1_means = cond1.mean()
 
-    cond1 = grouped.get_group(group1)
-    cond1_means = cond1.mean()
+        group2 = targets[1]
+        cond2 = grouped.get_group(targets[1])
+        cond2_means = cond2.mean()
 
-    cond2 = grouped.get_group(group2)
-    cond2_means = cond2.mean()
+        fold_diff = cond2_means/cond1_means
+    else:
+        cond1 = grouped.get_group(group1)
+        cond1_means = cond1.mean()
 
-    fold_diff = cond2_means/cond1_means
+        cond2 = grouped.get_group(group2)
+        cond2_means = cond2.mean()
+
+        fold_diff = cond2_means/cond1_means
+        
     volcano_data = pandas.DataFrame(fold_diff)
     volcano_data.columns = ['Fold difference']
-
 
     from scipy.stats import ttest_ind
 
