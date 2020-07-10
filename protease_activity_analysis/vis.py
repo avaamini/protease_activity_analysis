@@ -1,16 +1,17 @@
 """ Collection of data visualization functions """
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas
-import seaborn as sns
-#from plotnine import *
-import matplotlib.transforms as transforms
-from matplotlib.patches import Ellipse
-
 import os
+import numpy as np
 import pandas as pd
+import seaborn as sns
+import matplotlib
+import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
+
+from matplotlib.patches import Ellipse
+from sklearn import svm, model_selection, metrics, ensemble
+from plotnine import ggplot, geom_tile, aes, scale_fill_gradient2, coord_equal, \
+    themes
+from adjustText import adjust_text
 
 def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
     """
@@ -77,18 +78,17 @@ def plot_heatmap(data_matrix, reporters):
     Returns:
         heat_map (fig): heatmap of data
     """
-
-    from plotnine import ggplot, geom_tile, aes, scale_fill_gradient2, coord_equal, themes
     undo_multiindex = data_matrix.unstack(0)
     undo_multiindex = undo_multiindex.stack(0)
     undo_multiindex = undo_multiindex.stack(0)
     undo_multiindex = undo_multiindex.reset_index()
-    undo_multiindex = undo_multiindex.rename(columns={0:"z-scores", "level_1": "Reporters"})
+    undo_multiindex = undo_multiindex.rename(columns={0:"z-scores",
+        "level_1": "Reporters"})
     undo_multiindex = undo_multiindex.astype({"z-scores":float})
 
     # by category
-    fig1 = (
-(undo_multiindex, aes('Reporters', 'Sample Type', fill = 'z-scores'))
+    fig = (
+    (undo_multiindex, aes('Reporters', 'Sample Type', fill = 'z-scores'))
       + geom_tile(aes(width=0.95,  height=0.95))
       + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
       + coord_equal()
@@ -96,32 +96,11 @@ def plot_heatmap(data_matrix, reporters):
               axis_ticks=element_blank(),
               axis_text_x=element_text(angle=90),
               legend_title_align='center')
-
     )
 
-    # by individual sample
-   # fig2 = (ggplot(undo_multiindex, aes('Reporters', 'Sample ID', fill = 'z-scores'))
-    #  + geom_tile(aes(width=0.95,  height=0.95))
-    #  + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
-    #  + coord_equal()
-   #   + theme(
-  #            axis_ticks=element_blank(),
-   #           axis_text_x=element_text(angle=90),
-     #         legend_title_align='center')
-    #  + coord_flip()
+    fig.draw()
 
-   # )
-
-    fig1.draw()
-    #fig2.draw()
-
-    #to_plot = reshape.pivot("Sample ID", "Reporters", "values")
-    # fig, ax1 = plt.subplots(1,2)
-    # sns.heatmap(to_plot, ax=ax1)
-    # sns.heatmap(to_plot, ax=ax2)
-    # plt.show()
-
-    return fig1
+    return fig
 
 def plot_pca(data_matrix, reporters, data_path, file_name):
     """ Plots and saves principal component analysis fig
@@ -136,7 +115,6 @@ def plot_pca(data_matrix, reporters, data_path, file_name):
     features = reporters
     data_matrix = data_matrix.reset_index()
     x = data_matrix.loc[:,features].values
-    # y = data_matrix.index.get_level_values('Sample Type').values
     y = data_matrix.loc[:, ['Sample Type']].values
     x = StandardScaler().fit_transform(x)
 
@@ -144,10 +122,9 @@ def plot_pca(data_matrix, reporters, data_path, file_name):
 
     pca = PCA(n_components=2)
     principalComponents = pca.fit_transform(x)
-    principalDf = pandas.DataFrame(data = principalComponents
-             , columns = ['principal component 1', 'principal component 2'])
-    finalDf = pandas.concat([principalDf, data_matrix[['Sample Type']]], axis = 1)
-
+    principalDf = pd.DataFrame(data = principalComponents,
+        columns = ['principal component 1', 'principal component 2'])
+    finalDf = pd.concat([principalDf, data_matrix[['Sample Type']]], axis=1)
 
     fig = plt.figure(figsize = (8,8))
     ax = fig.add_subplot(1,1,1)
@@ -170,7 +147,8 @@ def plot_pca(data_matrix, reporters, data_path, file_name):
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , ax, n_std = 2, edgecolor = color)
 
-    l = ax.legend(loc='upper right', ncol=1, handlelength=0, fontsize=16, frameon=False)
+    l = ax.legend(loc='upper right', ncol=1, handlelength=0, fontsize=16,
+        frameon=False)
 
     for handle, text in zip(l.legendHandles, l.get_texts()):
         text.set_color(handle.get_facecolor()[0])
@@ -181,21 +159,19 @@ def plot_pca(data_matrix, reporters, data_path, file_name):
     fig.savefig(os.path.join(data_path, file))
     return
 
-
 def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     """ Plots and saves volcano plot figure
     Args:
-        data_matrix (pandas.pivot_table): normalized data matrix
+        data_matrix (pd.pivot_table): normalized data matrix
     Returns:
         volcano (fig): volcano plot of data. saved
     """
 
-    # transposed_norm = data_matrix.transpose()
-    print(data_matrix.head)
     grouped = data_matrix.groupby(level="Sample Type")
-    
+
     if group1==None and group2==None:
         targets = data_matrix.index.levels[0]
+
         group1 = targets[0]
         cond1 = grouped.get_group(targets[0])
         cond1_means = cond1.mean()
@@ -204,7 +180,7 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
         cond2 = grouped.get_group(targets[1])
         cond2_means = cond2.mean()
 
-        fold_diff = cond2_means/cond1_means
+        fold_change = cond2_means/cond1_means
     else:
         cond1 = grouped.get_group(group1)
         cond1_means = cond1.mean()
@@ -212,10 +188,10 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
         cond2 = grouped.get_group(group2)
         cond2_means = cond2.mean()
 
-        fold_diff = cond2_means/cond1_means
-        
-    volcano_data = pandas.DataFrame(fold_diff)
-    volcano_data.columns = ['Fold difference']
+        fold_change = cond2_means/cond1_means
+
+    volcano_data = pd.DataFrame(fold_change)
+    volcano_data.columns = ['Fold change']
 
     from scipy.stats import ttest_ind
 
@@ -229,33 +205,23 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
 
     from statsmodels.stats.multitest import multipletests
 
-    # Calculated the adjusted p-value using the Holm-Sidak method (as was done in Prism)
+    # Calculated the adjusted p-value using the Holm-Sidak method
     adjusted = multipletests(pvals=pvals, alpha=0.05, method="holm-sidak")
 
     volcano_data.insert(2, 'Adjusted p-vals', adjusted[1])
-    volcano_data.insert(3, '-log10(adjP)', -(np.log10(volcano_data['Adjusted p-vals'])))
+    volcano_data.insert(3, '-log10(adjP)',
+        -(np.log10(volcano_data['Adjusted p-vals'])))
     volcano_data['-log10(adjP)'] = volcano_data['-log10(adjP)'].replace(np.inf, 15)
 
-    signif = 1.3
+    signif = -(np.log10(0.05))
 
-    x = volcano_data['Fold difference']
+    x = volcano_data['Fold change']
     y = volcano_data['-log10(adjP)']
     sigvalues = np.ma.masked_where(y<signif, y)
     fig = plt.figure(figsize = (8,8))
     ax = fig.add_subplot(1,1,1)
     ax.scatter(x,y,c='k')
     ax.scatter(x, sigvalues, c='r')
-
-    # for x,y,rep in zip(x,sigvalues,volcano_data.index):
-    #     label = rep
-    #     # this method is called for each point
-    #     plt.annotate(label, # this is the text
-    #                  (x,y), # this is the point to label
-    #                  textcoords="offset points", # how to position the text
-    #                  xytext=(0, np.random.randint(5,10)), # distance from text to points (x,y)
-    #                  ha='center') # horizontal alignment can be left, right or center
-
-    from adjustText import adjust_text
 
     texts = []
     for x, y, l in zip(x,sigvalues,volcano_data.index):
@@ -266,57 +232,58 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 15)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
-    # ax.set_xlim(left=0.25, right=1.75) # hard coded for STM data
-    # ax.set_xticks(np.arange(0.25, 1.75, step=0.25)) # hard coded for STM data
     ax.axhline(y=1.3, linestyle='--', color='lightgray')
     ax.axvline(x=1, linestyle='--', color='lightgray')
-    # ax.set_ylim(bottom=0, top=5) # hard coded for STM data
 
     file = file_name + "_volcano.pdf"
     fig.savefig(os.path.join(data_path, file))
+
     return
 
-def plot_ROC(data_matrix, reporters):
-    """ Plots and saves principal component analysis fig
-    Args:
-        data_matrix (pandas.pivot_table): normalized data matrix
-    Returns:
-        pca_scatter (fig): PCA scatter plot of data
-    """
-
-
-def roc_curves(y_true, y_score, pos_label=None):
-    """ Performs ROC analysis and plots curves
+def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
+    """Plots mean ROC curve + standard deviation boundary from k-fold cross val.
 
     Args:
-        y_true (list, int/str): true labels. if labels are not (0,1),
-            then pos_label should be explicitly given.
-        y_score (list, float): class assignment scores
-        pos_label (str): string for positive class
+        tprs: true positive rates interpolated across linspace(0, 1, 100)
+        aucs: ROC AUC for each of the cross validation trials
+        out_path: path to directory to save plot
+        file_name: file name for saving and title to show on the figure
+        show_sd (bool): whether or not to show shading corresponding to sd
 
-    Returns:
-        roc_metrics: ROC
-        roc_curves (fig): ROC curves of the data. saved
     """
+    mean_fpr = np.linspace(0, 1, 100)
+    fig, ax = plt.subplots()
 
-    # TODO: ROC curves
+    ax.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
+        label='Random chance', alpha=.8) # line for random decision boundary
 
-    raise NotImplementedError
+    # compute average ROC curve and AUC
+    mean_tpr = np.mean(tprs, axis=0)
+    mean_tpr[-1] = 1.0
+    mean_auc = metrics.auc(mean_fpr, mean_tpr) # average auc
+    std_auc = np.std(aucs)
+    ax.plot(mean_fpr, mean_tpr, color='b',
+            label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),
+            lw=2, alpha=.8)
 
+    # shading for standard deviation across the k-folds of cross validation
+    if show_sd:
+        std_tpr = np.std(tprs, axis=0) # already interpolated
+        tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
+        tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
+        ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
+                        label=r'$\pm$ 1 std. dev.')
 
-def render_html_figures(figs):
-    """ Render a list of figures into an html document and render it.
+    ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05],
+           title=file_name)
+    ax.legend(loc="lower right")
+    ax.set_xlabel('1 - Specificity', fontsize = 15)
+    ax.set_ylabel('Sensitivity', fontsize = 15)
 
-    Args:
-        figs (list, plt.Figure): a list of matplotlib figures to render
-    """
+    file = file_name + "_ROC.pdf"
+    fig.savefig(os.path.join(out_path, file))
 
-    html = ""
-    for fig in figs:
-        html += mpld3.fig_to_html(fig)
-        html += "<hr>"
-    mpld3._server.serve(html)
-
+    return
 
 def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
     """ Analyze kinetic data based on fold change + initial rate
@@ -416,3 +383,16 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
     z_score_rate.to_csv(str(path) + '/' + str(prot) + '_z_score_rate.csv')
 
     return fc, fc_x, z_score_fc, init_rate, z_score_rate
+
+def render_html_figures(figs):
+    """ Render a list of figures into an html document and render it.
+
+    Args:
+        figs (list, plt.Figure): a list of matplotlib figures to # REVIEW: nder
+    """
+    raise NotImplementedError
+    # html = ""
+    # for fig in figs:
+    #     html += mpld3.fig_to_html(fig)
+    #     html += "<hr>"
+    # mpld3._server.serve(html)

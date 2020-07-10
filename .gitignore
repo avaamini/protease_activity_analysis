@@ -4,6 +4,10 @@
 
 # Data
 stm_data/
+protease_activity_analysis/tests/data
+
+# outputs
+outputs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
