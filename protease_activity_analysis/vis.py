@@ -384,6 +384,47 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
 
     return fc, fc_x, z_score_fc, init_rate, z_score_rate
 
+def plot_heatmap(in_path, out_path, metric='euclidean', method='average', scale='log2'):
+    """ Plot heatmap of data
+
+            Args:
+                - in_path (str): path to raw data
+                - out_path (str): path to store the results
+                - metric (str): Distance metric to use for the data, See scipy.cluster.hierarchy.linkage documentation
+                - method (str): Linkage method to use for calculating clusters, See scipy.spatial.distance.pdist documentatio
+                - scale (str): scaling to be performed: 'None', 'log2'
+
+
+            Returns:
+                - scaled_data (pandas.DataFrame): scaled data
+
+            TODO:
+            1. Add color map in the matrix as the last row
+            2. Decide on a universal color scheme + add argument for center
+
+    """
+
+    # Import data
+    heat = pd.read_excel(in_path, index_col=0)
+
+    # Scale data
+    if scale == 'log2':
+        heat = np.log2(heat)
+
+    # Define color labels
+    row_colors = pd.DataFrame({'Family': ['g', 'royalblue', 'orange', 'orange', 'orange', 'orange', 'g', 'g', 'g', 'g',
+                                          'g', 'orange', 'royalblue', 'orange', 'orange']}, index=heat.index)
+    # Plot heatmap
+    sns.set(font_scale=1.5)
+
+    cmap = sns.diverging_palette(h_neg=240, h_pos=20, sep=15, s=99, l=50, as_cmap=True)
+    fig = sns.clustermap(heat, cmap=cmap, center=0.1, linewidth=2, linecolor='white', dendrogram_ratio=(.15, .15),
+                         figsize=(8, 8), cbar_pos=(0, 0.12, .03, .4), method=method, row_colors=row_colors,
+                         metric=metric)
+
+    fig.savefig(out_path)
+
+    return heat
 def render_html_figures(figs):
     """ Render a list of figures into an html document and render it.
 
