@@ -46,13 +46,15 @@ def classify_kfold_roc(X, Y, class_type, k_splits, pos_class):
         # fit the model and predict
         classifier.fit(X[train], Y[train])
         prob = classifier.predict_proba(X_test)
-        preds = prob[:,1]
+        classes = classifier.classes_.tolist()
+        ind_pos = classes.index(pos_class)
+        preds = prob[:,ind_pos]
         score = classifier.score(X_test, Y_test)
         probs.append(prob)
         scores.append(score)
 
         # ROC analysis
-        fpr, tpr, _ = metrics.roc_curve(Y_test, preds, pos_label=pos_class) # hard coded
+        fpr, tpr, _ = metrics.roc_curve(Y_test, preds, pos_label=pos_class)
         auc = metrics.auc(fpr, tpr)
         interp_tpr = np.interp(mean_fpr, fpr, tpr)
         interp_tpr[0] = 0.0

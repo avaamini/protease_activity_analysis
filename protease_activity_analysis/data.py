@@ -152,7 +152,7 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
     classes = [neg_class, pos_class]
     inds_to_keep = [i for i, val in enumerate(class_labels) if val in classes]
     class_labels = class_labels[inds_to_keep]
-    
+
     # prepare the data and return
     data = data.reset_index()
     data = data.iloc[inds_to_keep, :]
