@@ -4,7 +4,7 @@ import pandas
 import matplotlib.pyplot as plt
 from sklearn import svm, model_selection, metrics, ensemble
 
-def classify_kfold_roc(X, Y, class_type, k_splits):
+def classify_kfold_roc(X, Y, class_type, k_splits, pos_class):
     """Perform sample classification with k-fold cross validation and ROC analysis.
 
     Args:
@@ -14,6 +14,7 @@ def classify_kfold_roc(X, Y, class_type, k_splits):
             number of classes. Includes labels for both train/test.
         class_type ("svm", "random forest"): type of classifier
         k_splits: number of splits for cross validation
+        pos_class: string name for positive class
 
     Returns:
         probs: class probabilities for samples in test splits
@@ -51,7 +52,7 @@ def classify_kfold_roc(X, Y, class_type, k_splits):
         scores.append(score)
 
         # ROC analysis
-        fpr, tpr, _ = metrics.roc_curve(Y_test, preds, pos_label='LUAD') # hard coded
+        fpr, tpr, _ = metrics.roc_curve(Y_test, preds, pos_label=pos_class) # hard coded
         auc = metrics.auc(fpr, tpr)
         interp_tpr = np.interp(mean_fpr, fpr, tpr)
         interp_tpr[0] = 0.0

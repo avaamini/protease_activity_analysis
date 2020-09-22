@@ -34,6 +34,6 @@ if __name__ == '__main__':
 
     for classifier in args.class_type:
         probs, scores, tprs, aucs = paa.classify.classify_kfold_roc(X, Y,
-            classifier, args.num_folds)
+            classifier, args.num_folds, args.pos_class)
         save_name = args.save + "_" + classifier
         paa.vis.plot_kfold_roc(tprs, aucs, out_dir, save_name, show_sd=True)
