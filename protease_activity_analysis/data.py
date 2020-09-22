@@ -148,8 +148,14 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
         neg_inds = [i for i, val in enumerate(sample_type) if val in neg_classes]
         class_labels[neg_inds] = neg_class
 
+    # eliminate the data that is not in the pos_class or the neg_class
+    classes = [neg_class, pos_class]
+    inds_to_keep = [i for i, val in enumerate(class_labels) if val in classes]
+    class_labels = class_labels[inds_to_keep]
+    
     # prepare the data and return
     data = data.reset_index()
+    data = data.iloc[inds_to_keep, :]
     data['Class Labels'] = class_labels
     data = data.set_index(['Sample Type', 'Sample ID', 'Class Labels'])
     X = data.to_numpy()
