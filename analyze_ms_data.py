@@ -2,63 +2,43 @@ import os
 import protease_activity_analysis as paa
 import argparse
 
-from utils import get_data_dir, get_output_dir, PLEX_14, RENAMED_14, \
-    PLEX_20, RENAMED_20
+from utils import get_data_dir, get_output_dir
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--in_data_path', help='path to load data from')
-parser.add_argument('--in_type_path', help='path to load Sample Types from')
-parser.add_argument('-n', '--sheets', type=str, nargs="*")
-parser.add_argument('--stock', help='name of the stock in the Inventiv file')
-parser.add_argument('--num_plex', type=int, help='number reporters (14 or 20)')
-parser.add_argument('--type_filter', default=None, type=str, nargs="*",
-    help='nomenclature filter for sample type to use')
-parser.add_argument('--ID_filter', default=None, type=str,
-    help='nomenclature filter for sample ID to use')
-parser.add_argument('--group1', default=None, type=str,
-    help='first group for significance comparison')
-parser.add_argument('--group2', default=None, type=str,
-    help='second group for significance comparison')
-parser.add_argument('--save_name', type=str, help='name to save')
-
-def load_urine_data(data_dir, args):
-    # get data files
-    data_path = os.path.join(data_dir, args.in_data_path)
-    id_path = os.path.join(data_dir, args.in_type_path)
+## TODO: change this function so that it does not take all arguments
+def load_urine_data(args):
+    data_dir = get_data_dir()
 
     # read syneos file
-    syneos_data = paa.data.load_syneos(data_path, id_path, args.sheets)
+    syneos_data = paa.data.load_syneos(args.data_path, args.type_path, args.sheets)
 
-    # 14-plex
-    if args.num_plex == 14:
-        plex = PLEX_14
-        renamed = RENAMED_14
-    elif args.num_plex == 20:
-    ## 20-plex
-        plex = PLEX_20
-        renamed = RENAMED_20
+    # read plex/reporter file
+    plex, renamed = paa.data.get_plex(args.plex_path)
 
     # process the data and do normalizations
     normalized_matrix = paa.data.process_syneos_data(syneos_data, plex,
-        args.stock, args.type_filter, args.ID_filter)
+        args.stock, args.type_filter, args.ID_filter, args.ID_exclude)
     normalized_matrix.columns = renamed
 
     # save data in pickle file
-    matrix_name = args.save_name + ".pkl"
-    normalized_matrix.to_pickle(os.path.join(data_dir, matrix_name))
+    if args.pkl_name is not None:
+        pkl_name = args.pkl_name + ".pkl"
+        normalized_matrix.to_pickle(os.path.join(data_dir, pkl_name))
+    else:
+        pkl_name = args.pkl_name
 
-    return normalized_matrix, plex, renamed
+    return normalized_matrix, plex, renamed, pkl_name
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-    data_dir = get_data_dir()
+    args = paa.parsing.parse_ms_args()
     out_dir = get_output_dir()
 
-    matrix, plex, renamed = load_urine_data(data_dir, args)
+    matrix, plex, renamed, _ = load_urine_data(args)
 
     """ volcano plot """
-    paa.vis.plot_volcano(matrix, args.group1, args.group2, renamed, out_dir,
-        args.save_name)
+    if args.volcano:
+        paa.vis.plot_volcano(matrix, args.group1, args.group2, renamed, out_dir,
+            args.save_name)
 
     """ PCA """
-    paa.vis.plot_pca(matrix, renamed, out_dir, args.save_name)
+    if args.pca:
+        paa.vis.plot_pca(matrix, renamed, args.pca_groups, out_dir, args.save_name)

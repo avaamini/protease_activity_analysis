@@ -3,11 +3,13 @@
 .idea/
 
 # Data
+data/
 stm_data/
 protease_activity_analysis/tests/data
 
-# outputs
+# outputs et al
 outputs/
+*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
