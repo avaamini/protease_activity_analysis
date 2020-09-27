@@ -17,7 +17,7 @@ def load_syneos(data_path, id_path, sheet_names):
     """
 
     # read syneos excel file
-    usecols = [2,3,6,7,8]
+    usecols = [2,3,6,7,8] # HARDCODED
 
     sheet_data = pd.read_excel(data_path,
         sheet_names, header=1, usecols=usecols)
@@ -46,7 +46,7 @@ def load_syneos(data_path, id_path, sheet_names):
     return data_matrix
 
 def process_syneos_data(data_matrix, features_to_use, stock_id,
-    sample_type_to_use=None, sample_ID_to_use=None):
+    sample_type_to_use=None, sample_ID_to_use=None, sample_ID_to_exclude=None):
     """ Process syneos data. Keep relevant features and mean-normalize
 
     Args:
@@ -56,6 +56,7 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
         sample_type_to_use (list, str): sample types to use
         sample_ID_to_use (str): contains (sub)string indicator of samples to
             include, e.g. "2B" or "2hr" to denote 2hr samples. default=None
+        sample_ID_to_use (list, str): specific sample IDs to exclude
 
     Returns:
         norm_data_matrix (pandas.df)
@@ -87,6 +88,12 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     filtered_matrix = filtered_matrix / stock
     filtered_matrix = filtered_matrix.drop('Stock', level='Sample Type')
 
+    # eliminate those samples that do not meet the sample type name criterion
+    if sample_type_to_use != None:
+        undo_multi = filtered_matrix.reset_index()
+        filtered_matrix = undo_multi[undo_multi['Sample Type'].isin(sample_type_to_use)]
+        filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
+
     # eliminate those samples that do not meet the sample ID name criterion
     if sample_ID_to_use != None:
         undo_multi = filtered_matrix.reset_index()
@@ -94,10 +101,10 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
             sample_ID_to_use)]
         filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
 
-    # eliminate those samples that do not meet the sample type name criterion
-    if sample_type_to_use != None:
+    # eliminate those samples that are specified for exclusion
+    if sample_ID_to_exclude != None:
         undo_multi = filtered_matrix.reset_index()
-        filtered_matrix = undo_multi[undo_multi['Sample Type'].isin(sample_type_to_use)]
+        filtered_matrix = undo_multi[~undo_multi['Sample ID'].isin(sample_ID_to_exclude)]
         filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
 
     # mean normalization
@@ -105,8 +112,50 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
 
     return mean_normalized
 
+def make_multiclass_dataset(data_dir, file_list, classes_to_include):
+    """ Creates a dataset for multiclass classification.
+
+    Args:
+        data_dir (str): path to the directory where pickle files are
+        file_list (list, str): list of pickle file names as in data_dir
+        classes_to_include (list, str): list of Sample Type labels to consider
+
+    Returns:
+        X (np array): matrix of size n x m of the data, where n is the number of
+            samples and m is the number of features
+        Y (np array): matrix of size n x k containing the classification labels
+            for the samples in the dataset, where k is the number of classes
+        data (pd dataframe): pandas data frame containing X, Y, Sample Type, and
+            Sample Type ID
+    """
+    # read pickle files in file list and load the data
+    matrices = []
+    for f in file_list:
+        path = os.path.join(data_dir, f)
+        data = pd.read_pickle(path)
+        matrices.append(data)
+    data = pd.concat(matrices)
+
+    # get Sample Type and copy for class labeling
+    sample_type = data.index.get_level_values('Sample Type').to_numpy()
+    class_labels = np.copy(sample_type)
+
+    # eliminate the data that is not in the classes_to_include
+    inds_to_keep = [i for i, val in enumerate(class_labels) if val in classes_to_include]
+    class_labels = class_labels[inds_to_keep]
+
+    # prepare the data and return
+    data = data.reset_index()
+    data = data.iloc[inds_to_keep, :]
+    data['Class Labels'] = class_labels
+    data = data.set_index(['Sample Type', 'Sample ID', 'Class Labels'])
+    X = data.to_numpy()
+    Y = data.index.get_level_values('Class Labels').to_numpy()
+
+    return X, Y, data
+
 def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
-    neg_classes=None, neg_class=None):
+    neg_classes=None, neg_class=None, multi_class=False):
     """ Creates a dataset for binary classification.
 
     Args:
@@ -123,7 +172,7 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
         X (np array): matrix of size n x m of the data, where n is the number of
             samples and m is the number of features
         Y (np array): matrix of size n x 1 containing the classification labels
-            for the samples in the dataset
+            for the samples in the dataset, for binary classification problem
         data (pd dataframe): pandas data frame containing X, Y, Sample Type, and
             Sample Type ID
     """
@@ -162,6 +211,21 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
     Y = data.index.get_level_values('Class Labels').to_numpy()
 
     return X, Y, data
+
+def get_plex(data_path):
+    """ Reads a csv file with N-plex reporter and name mapping.
+
+    Args:
+        data_path (str): path to the file
+    Returns:
+        plex (list str): the reporters (i.e., 1UR3_01, etc)
+        renamed (list str): renamed reporter names (i.e., PP01, etc)
+    """
+    reporters = pd.read_csv(data_path, header=0)
+    plex = reporters["Reporter"].tolist()
+    renamed = reporters["Name"].tolist()
+
+    return plex, renamed
 
 def read_names_from_uniprot(data_path, sheet_names):
     """ Read a excel file with Uniprot data and extract all gene names

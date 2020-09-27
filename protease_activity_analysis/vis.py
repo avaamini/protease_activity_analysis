@@ -1,5 +1,6 @@
 """ Collection of data visualization functions """
 import os
+import copy
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -102,7 +103,7 @@ def plot_heatmap(data_matrix, reporters):
 
     return fig
 
-def plot_pca(data_matrix, reporters, data_path, file_name):
+def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
     """ Plots and saves principal component analysis fig
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
@@ -111,20 +112,23 @@ def plot_pca(data_matrix, reporters, data_path, file_name):
     """
 
     from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
 
     features = reporters
     data_matrix = data_matrix.reset_index()
+    if pca_groups is not None:
+        data_matrix = data_matrix[data_matrix['Sample Type'].isin(pca_groups)]
+
     x = data_matrix.loc[:,features].values
     y = data_matrix.loc[:, ['Sample Type']].values
     x = StandardScaler().fit_transform(x)
 
-    from sklearn.decomposition import PCA
-
     pca = PCA(n_components=2)
     principalComponents = pca.fit_transform(x)
-    principalDf = pd.DataFrame(data = principalComponents,
-        columns = ['principal component 1', 'principal component 2'])
-    finalDf = pd.concat([principalDf, data_matrix[['Sample Type']]], axis=1)
+    finalDf = pd.DataFrame(data = {
+        'principal component 1': principalComponents[:,0],
+        'principal component 2': principalComponents[:,1],
+        'Sample Type': data_matrix['Sample Type']})
 
     fig = plt.figure(figsize = (8,8))
     ax = fig.add_subplot(1,1,1)
@@ -134,8 +138,13 @@ def plot_pca(data_matrix, reporters, data_path, file_name):
     ax.set_xlabel('PC1 ('+ "%0.1f" % (pc1) + '% explained var.)', fontsize = 15)
     ax.set_ylabel('PC2 ('+ "%0.1f" % (pc2) + '% explained var.)', fontsize = 15)
     ax.set_title('PCA Analysis of Inventiv data', fontsize = 20)
+
     targets = finalDf['Sample Type'].unique()
-    colors = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue']
+    # COLORS accounts for 10 groups; @Melodi can revise as you wish
+    COLORS = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue',
+        'dodgerblue', 'indigo', 'lightsalmon', 'lime', 'darkslategray']
+    colors = COLORS[:len(targets)]
+
     for target, color in zip(targets,colors):
         indicesToKeep = finalDf['Sample Type'] == target
         ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
@@ -166,12 +175,9 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     Returns:
         volcano (fig): volcano plot of data. saved
     """
-
-    grouped = data_matrix.groupby(level="Sample Type")
-
     if group1==None and group2==None:
         targets = data_matrix.index.levels[0]
-
+        grouped = data_matrix.groupby(level="Sample Type")
         group1 = targets[0]
         cond1 = grouped.get_group(targets[0])
         cond1_means = cond1.mean()
@@ -182,11 +188,12 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
 
         fold_change = cond2_means/cond1_means
     else:
-        cond1 = grouped.get_group(group1)
-        cond1_means = cond1.mean()
+        undo_multi = data_matrix.reset_index()
+        cond1 = undo_multi[undo_multi['Sample Type'].isin(group1)]
+        cond1_means = cond1.mean(axis=0)
 
-        cond2 = grouped.get_group(group2)
-        cond2_means = cond2.mean()
+        cond2 = undo_multi[undo_multi['Sample Type'].isin(group2)]
+        cond2_means = cond2.mean(axis=0)
 
         fold_change = cond2_means/cond1_means
 
@@ -228,7 +235,7 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
         texts.append(plt.text(x, y, l, size=12))
     adjust_text(texts)
 
-    ax.set_xlabel('Fold change (' + group2 + '/' + group1 +')', fontsize = 15)
+    ax.set_xlabel('Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')', fontsize = 15)
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 15)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
@@ -251,7 +258,7 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
         show_sd (bool): whether or not to show shading corresponding to sd
 
     """
-    mean_fpr = np.linspace(0, 1, 100)
+    mean_fpr = np.linspace(0, 1, 10000)
     fig, ax = plt.subplots()
 
     ax.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
@@ -263,7 +270,7 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     mean_auc = metrics.auc(mean_fpr, mean_tpr) # average auc
     std_auc = np.std(aucs)
     ax.plot(mean_fpr, mean_tpr, color='b',
-            label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),
+            label=r'Mean ROC (AUC = %0.2f $\pm$ %0.f)' % (mean_auc, std_auc),
             lw=2, alpha=.8)
 
     # shading for standard deviation across the k-folds of cross validation
@@ -284,6 +291,11 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     fig.savefig(os.path.join(out_path, file))
 
     return
+
+def plot_rfe():
+    """Recursive feature elimination.
+    """
+    raise NotImplementedError
 
 def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
     """ Analyze kinetic data based on fold change + initial rate
@@ -425,6 +437,7 @@ def plot_heatmap(in_path, out_path, metric='euclidean', method='average', scale=
     fig.savefig(out_path)
 
     return heat
+
 def render_html_figures(figs):
     """ Render a list of figures into an html document and render it.
 

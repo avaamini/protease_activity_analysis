@@ -1,18 +1,84 @@
 """ Train and test classification models """
 import numpy as np
-import pandas
+import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn import svm, model_selection, metrics, ensemble
+import seaborn as sns
+from sklearn import svm, model_selection, metrics, ensemble, linear_model
 
-def classify_kfold_roc(X, Y, class_type, k_splits, pos_class):
-    """Perform sample classification with k-fold cross validation and ROC analysis.
+def multiclass_classify(X, Y, class_type, k_splits, save_path):
+    """Perform multiclass sample classification with k-fold cross validation.
+    Plots confusion matrix heatmap.
 
     Args:
         X: full dataset (n x m) where n is the number of samples and m is the
             number of features. Includes samples for both train/test.
         Y: true labels (n x j), where n is the number of samples and j is the
             number of classes. Includes labels for both train/test.
-        class_type ("svm", "random forest"): type of classifier
+        class_type ("svm", "rf", "lr"): type of classifier
+        k_splits: number of splits for cross validation
+        save_path: path to save
+
+    Returns:
+        probs: class probabilities for samples in test splits
+        scores: prediction scores for samples in test splits
+    """
+    # splits for k-fold cross validation
+    cv = model_selection.StratifiedKFold(n_splits=k_splits)
+
+    if class_type == "svm": # support vector machine
+        classifier = svm.SVC(kernel='linear', probability=True,
+            random_state=0)
+    elif class_type == "rf": # random forest classifier
+        classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=0)
+    elif class_type == "lr": # logistic regression with L2 loss
+        classifier = linear_model.LogisticRegression(random_state=0)
+
+    probs = []
+    scores = []
+    cms = []
+
+    for i, (train, test) in enumerate(cv.split(X, Y)):
+        X_test = X[test]
+        Y_test = Y[test]
+
+        # fit the model and predict
+        classifier.fit(X[train], Y[train])
+        prob = classifier.predict_proba(X_test) # prediction probabilities
+        score = classifier.score(X_test, Y_test) # accuracy
+        pred = classifier.predict(X_test) # predicted class
+        cm = metrics.confusion_matrix(Y_test, pred) # confusion matrix
+        cm_norm = cm / cm.sum(axis=1, keepdims=1) # normalized
+
+        probs.append(prob)
+        scores.append(score)
+        cms.append(cm_norm)
+
+    cms = np.asarray(cms)
+    cms_avg = np.mean(cms, axis=0)
+    cm_df = pd.DataFrame(data = cms_avg)
+    classes = np.unique(Y)
+
+    ## Plot confusion matrix, average over the folds
+    g = sns.heatmap(cm_df, annot=True, xticklabels=classes, yticklabels=classes, cmap='Blues')
+    g.set_yticklabels(g.get_yticklabels(), rotation = 0)
+    g.set_xlabel('Predicted Label', fontsize=12)
+    g.set_ylabel('True Label', fontsize=12)
+
+    file = save_path + "_confusion.pdf"
+    fig = g.get_figure()
+    fig.savefig(file)
+
+    return probs, scores, cms
+
+def classify_kfold_roc(X, Y, class_type, k_splits, pos_class):
+    """Perform sample binary classification with k-fold cross validation and ROC analysis.
+
+    Args:
+        X: full dataset (n x m) where n is the number of samples and m is the
+            number of features. Includes samples for both train/test.
+        Y: true labels (n x j), where n is the number of samples and j is the
+            number of classes. Includes labels for both train/test.
+        class_type ("svm", "rf", "lr"): type of classifier
         k_splits: number of splits for cross validation
         pos_class: string name for positive class
 
@@ -30,6 +96,8 @@ def classify_kfold_roc(X, Y, class_type, k_splits, pos_class):
             random_state=0)
     elif class_type == "rf": # random forest classifier
         classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=0)
+    elif class_type == "lr": # logistic regression with L2 loss
+        classifier = linear_model.LogisticRegression(random_state=0)
 
     probs = []
     scores = []
@@ -37,7 +105,7 @@ def classify_kfold_roc(X, Y, class_type, k_splits, pos_class):
     # for ROC analysis
     tprs = []
     aucs = []
-    mean_fpr = np.linspace(0, 1, 100)
+    mean_fpr = np.linspace(0, 1, 10000)
 
     for i, (train, test) in enumerate(cv.split(X, Y)):
         X_test = X[test]
