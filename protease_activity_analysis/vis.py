@@ -100,6 +100,7 @@ def plot_heatmap(data_matrix, reporters):
     )
 
     fig.draw()
+    plt.close()
 
     return fig
 
@@ -166,6 +167,8 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
 
     file = file_name + "_PCA.pdf"
     fig.savefig(os.path.join(data_path, file))
+    plt.close()
+
     return
 
 def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
@@ -244,6 +247,7 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
 
     file = file_name + "_volcano.pdf"
     fig.savefig(os.path.join(data_path, file))
+    plt.close()
 
     return
 
@@ -289,13 +293,9 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
 
     file = file_name + "_ROC.pdf"
     fig.savefig(os.path.join(out_path, file))
+    plt.close()
 
     return
-
-def plot_rfe():
-    """Recursive feature elimination.
-    """
-    raise NotImplementedError
 
 def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
     """ Analyze kinetic data based on fold change + initial rate
@@ -330,6 +330,8 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
         ax.set_ylabel(ylabel, fontsize=14)
         ax.set_title(title, fontsize=15)
         ax.figure.savefig(path)
+
+        plt.close()
 
         return ax
 
@@ -394,6 +396,8 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
     init_rate.to_csv(str(path) + '/' + str(prot) + '_init_rate.csv')
     z_score_rate.to_csv(str(path) + '/' + str(prot) + '_z_score_rate.csv')
 
+    plt.close()
+
     return fc, fc_x, z_score_fc, init_rate, z_score_rate
 
 def plot_heatmap(in_path, out_path, metric='euclidean', method='average', scale='log2'):
@@ -435,6 +439,7 @@ def plot_heatmap(in_path, out_path, metric='euclidean', method='average', scale=
                          metric=metric)
 
     fig.savefig(out_path)
+    plt.close()
 
     return heat
 

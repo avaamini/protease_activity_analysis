@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn import svm, model_selection, metrics, ensemble, linear_model
+from sklearn import svm, model_selection, metrics, ensemble, linear_model, feature_selection
 
 def multiclass_classify(X, Y, class_type, k_splits, save_path):
     """Perform multiclass sample classification with k-fold cross validation.
@@ -129,3 +129,52 @@ def classify_kfold_roc(X, Y, class_type, k_splits, pos_class):
         tprs.append(interp_tpr)
         aucs.append(auc)
     return probs, scores, tprs, aucs
+
+def recursive_feature_elimination(X, Y, class_type, k_splits, out_path, save_path):
+    """Recursive feature elimination. Tunes the number of features selected
+            using k-fold cross validation.
+
+    Args:
+        X: full dataset (n x m) where n is the number of samples and m is the
+            number of features. Includes samples for both train/test.
+        Y: true labels (n x j), where n is the number of samples and j is the
+            number of classes. Includes labels for both train/test.
+        class_type ("svm", "rf", "lr"): type of classifier
+        k_splits: number of splits for cross validation
+        save_path: path to save file
+
+    Returns:
+
+    """
+    # splits for k-fold cross validation
+    cross_val = model_selection.StratifiedKFold(n_splits=k_splits)
+
+    if class_type == "svm": # support vector machine
+        classifier = svm.SVC(kernel='linear', probability=True)
+    elif class_type == "rf": # random forest classifier
+        classifier = ensemble.RandomForestClassifier(max_depth=2)
+    elif class_type == "lr": # logistic regression with L2 loss
+        classifier = linear_model.LogisticRegression()
+
+    # use accuracy, which is reflective of number of correct classifications
+    rfe_cv = feature_selection.RFECV(estimator=classifier, step=1, \
+        cv=cross_val, scoring='accuracy')
+
+    rfe_cv.fit(X, Y)
+    print("Optimal number of features : %d" % rfe_cv.n_features_)
+    import pdb; pdb.set_trace()
+
+    ## Plot # of reporters vs. accuracy
+    g = sns.lineplot(x=range(1, len(rfe_cv.grid_scores_)+1), y=rfe_cv.grid_scores_)
+    g.set_xlabel('Number of reporters', fontsize=12)
+    g.set_ylabel('Cross validation accuracy', fontsize=12)
+    g.set_xticks(range(1, len(rfe_cv.grid_scores_)+1))
+    g.set_title('Recursive feature elimination')
+
+    file = save_path + "_rfe.pdf"
+    fig = g.get_figure()
+    fig.savefig(os.path.join(out_path, file))
+    plt.show()
+    plt.close()
+
+    return

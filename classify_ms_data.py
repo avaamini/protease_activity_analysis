@@ -35,3 +35,7 @@ if __name__ == '__main__':
                 classifier, args.num_folds, args.pos_class)
             save_name = args.save_name + "_" + classifier
             paa.vis.plot_kfold_roc(tprs, aucs, out_dir, save_name, show_sd=True)
+
+            # Recursive feature elimination analysis
+            paa.classify.recursive_feature_elimination(X, Y, classifier,
+                args.num_folds, save_name)
