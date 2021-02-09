@@ -136,9 +136,10 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
     explained_variance = pca.explained_variance_ratio_
     pc1 = explained_variance[0]*100
     pc2 = explained_variance[1]*100
-    ax.set_xlabel('PC1 ('+ "%0.1f" % (pc1) + '% explained var.)', fontsize = 15)
-    ax.set_ylabel('PC2 ('+ "%0.1f" % (pc2) + '% explained var.)', fontsize = 15)
+    ax.set_xlabel('PC1 ('+ "%0.1f" % (pc1) + '% explained var.)', fontsize = 20)
+    ax.set_ylabel('PC2 ('+ "%0.1f" % (pc2) + '% explained var.)', fontsize = 20)
     ax.set_title('PCA Analysis of Inventiv data', fontsize = 20)
+    ax.tick_params(axis='both', labelsize=18)
 
     targets = finalDf['Sample Type'].unique()
     # COLORS accounts for 10 groups; @Melodi can revise as you wish
@@ -230,18 +231,25 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     sigvalues = np.ma.masked_where(y<signif, y)
     fig = plt.figure(figsize = (8,8))
     ax = fig.add_subplot(1,1,1)
-    ax.scatter(x,y,c='k')
-    ax.scatter(x, sigvalues, c='r')
+    ax.scatter(x,y,c='k',s=45)
+    ax.scatter(x, sigvalues, c='r',s=45)
 
     texts = []
     for x, y, l in zip(x,sigvalues,volcano_data.index):
         texts.append(plt.text(x, y, l, size=12))
     adjust_text(texts)
 
-    ax.set_xlabel('Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')', fontsize = 15)
-    ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 15)
+    ax.set_xlabel('Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')', fontsize = 20)
+    ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 20)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
+    ax.tick_params(axis='both', labelsize=18)
+    # Hardcoded for AIP experiment
+    # ax.set_ylim(bottom=-0.2831143480741629, top=np.ceil(5.990397227318687))
+
+
+    # plt.rc('xtick', labelsize=40)
+    # plt.rc('ytick', labelsize=20)
     ax.axhline(y=1.3, linestyle='--', color='lightgray')
     ax.axvline(x=1, linestyle='--', color='lightgray')
 

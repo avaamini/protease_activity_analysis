@@ -4,6 +4,8 @@ import pandas as pd
 import itertools
 import os
 
+from utils import get_output_dir
+
 def load_syneos(data_path, id_path, sheet_names):
     """ Read a Syneos file from a path and extract data
 
@@ -46,7 +48,7 @@ def load_syneos(data_path, id_path, sheet_names):
     return data_matrix
 
 def process_syneos_data(data_matrix, features_to_use, stock_id,
-    sample_type_to_use=None, sample_ID_to_use=None, sample_ID_to_exclude=None):
+    sample_type_to_use=None, sample_ID_to_use=None, sample_ID_to_exclude=None, save_name=None):
     """ Process syneos data. Keep relevant features and mean-normalize
 
     Args:
@@ -107,10 +109,11 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
         filtered_matrix = undo_multi[~undo_multi['Sample ID'].isin(sample_ID_to_exclude)]
         filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
 
-    # mean normalization
-    mean_normalized = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
-
-    return mean_normalized
+    # mean scaling
+    mean_scaled = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
+    out_dir = get_output_dir()
+    mean_scaled.to_csv(os.path.join(out_dir, f"{save_name}_mean_scaled.csv"))
+    return mean_scaled
 
 def make_multiclass_dataset(data_dir, file_list, classes_to_include):
     """ Creates a dataset for multiclass classification.

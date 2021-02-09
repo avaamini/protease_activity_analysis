@@ -16,7 +16,7 @@ def load_urine_data(args):
 
     # process the data and do normalizations
     normalized_matrix = paa.data.process_syneos_data(syneos_data, plex,
-        args.stock, args.type_filter, args.ID_filter, args.ID_exclude)
+        args.stock, args.type_filter, args.ID_filter, args.ID_exclude, args.save_name)
     normalized_matrix.columns = renamed
 
     # save data in pickle file
