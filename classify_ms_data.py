@@ -38,4 +38,4 @@ if __name__ == '__main__':
 
             # Recursive feature elimination analysis
             paa.classify.recursive_feature_elimination(X, Y, classifier,
-                args.num_folds, save_name)
+                args.num_folds, out_dir, save_name)

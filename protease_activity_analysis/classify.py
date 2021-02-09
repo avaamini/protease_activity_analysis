@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 from sklearn import svm, model_selection, metrics, ensemble, linear_model, feature_selection
 
 def multiclass_classify(X, Y, class_type, k_splits, save_path):
@@ -130,7 +131,7 @@ def classify_kfold_roc(X, Y, class_type, k_splits, pos_class):
         aucs.append(auc)
     return probs, scores, tprs, aucs
 
-def recursive_feature_elimination(X, Y, class_type, k_splits, out_path, save_path):
+def recursive_feature_elimination(X, Y, class_type, k_splits, out_path, save_name):
     """Recursive feature elimination. Tunes the number of features selected
             using k-fold cross validation.
 
@@ -162,7 +163,6 @@ def recursive_feature_elimination(X, Y, class_type, k_splits, out_path, save_pat
 
     rfe_cv.fit(X, Y)
     print("Optimal number of features : %d" % rfe_cv.n_features_)
-    import pdb; pdb.set_trace()
 
     ## Plot # of reporters vs. accuracy
     g = sns.lineplot(x=range(1, len(rfe_cv.grid_scores_)+1), y=rfe_cv.grid_scores_)
@@ -171,7 +171,7 @@ def recursive_feature_elimination(X, Y, class_type, k_splits, out_path, save_pat
     g.set_xticks(range(1, len(rfe_cv.grid_scores_)+1))
     g.set_title('Recursive feature elimination')
 
-    file = save_path + "_rfe.pdf"
+    file = save_name + "_rfe.pdf"
     fig = g.get_figure()
     fig.savefig(os.path.join(out_path, file))
     plt.show()
