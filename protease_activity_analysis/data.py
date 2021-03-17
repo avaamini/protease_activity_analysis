@@ -33,7 +33,7 @@ def load_syneos(data_path, id_path, sheet_names):
 
     # read SampleType file
     sample_to_type = pd.read_excel(id_path, header=0, index_col=0)
-    sample_type = sample_to_type.loc[df["Sample ID"]]
+    sample_type = sample_to_type.reindex(df["Sample ID"])
     df['Sample Type'] = sample_type.values
 
     # account for dilution factors
@@ -109,11 +109,30 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
         filtered_matrix = undo_multi[~undo_multi['Sample ID'].isin(sample_ID_to_exclude)]
         filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
 
-    # mean scaling
-    mean_scaled = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
     out_dir = get_output_dir()
-    mean_scaled.to_csv(os.path.join(out_dir, f"{save_name}_mean_scaled.csv"))
-    return mean_scaled
+    filtered_matrix.to_csv(os.path.join(out_dir, f"{save_name}_filtered_matrix.csv"))
+    
+##    # mean scaling
+##    mean_scaled = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
+##    out_dir = get_output_dir()
+##    mean_scaled.to_csv(os.path.join(out_dir, f"{save_name}_mean_scaled.csv"))
+####    
+##    return mean_scaled
+
+    import scipy.stats as stats
+    # across samples
+    zscore = pd.DataFrame(stats.zscore(filtered_matrix, axis=0))
+##
+##    # across reporter
+##    #zscore = pd.DataFrame(stats.zscore(filtered_matrix, axis=1))
+##
+    zscore.columns = filtered_matrix.columns
+    zscore.index = filtered_matrix.index
+
+    zscore.to_csv(os.path.join(out_dir, f"{save_name}_z_scored.csv"))
+
+    return zscore
+
 
 def make_multiclass_dataset(data_dir, file_list, classes_to_include):
     """ Creates a dataset for multiclass classification.

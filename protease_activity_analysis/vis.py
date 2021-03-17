@@ -143,10 +143,13 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
 
     targets = finalDf['Sample Type'].unique()
     # COLORS accounts for 10 groups; @Melodi can revise as you wish
-    COLORS = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue',
-        'dodgerblue', 'indigo', 'lightsalmon', 'lime', 'darkslategray']
+    #COLORS = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue',
+    #    'dodgerblue', 'indigo', 'lightsalmon', 'lime', 'darkslategray']
+    #COLORS = ['darkblue','k','orange']
+    COLORS = ['k', 'deepskyblue', 'lightseagreen', 'orangered', 'coral', 'dodgerblue', 'indigo', 'darkslategray']
     colors = COLORS[:len(targets)]
 
+    print(finalDf)
     for target, color in zip(targets,colors):
         indicesToKeep = finalDf['Sample Type'] == target
         ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
@@ -195,9 +198,12 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
         undo_multi = data_matrix.reset_index()
         cond1 = undo_multi[undo_multi['Sample Type'].isin(group1)]
         cond1_means = cond1.mean(axis=0)
+        print(cond1_means)
 
         cond2 = undo_multi[undo_multi['Sample Type'].isin(group2)]
+        print(undo_multi)
         cond2_means = cond2.mean(axis=0)
+        print(cond2_means)
 
         fold_change = cond2_means/cond1_means
 
@@ -246,13 +252,14 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     ax.tick_params(axis='both', labelsize=18)
     # Hardcoded for AIP experiment
     # ax.set_ylim(bottom=-0.2831143480741629, top=np.ceil(5.990397227318687))
-
+    
 
     # plt.rc('xtick', labelsize=40)
     # plt.rc('ytick', labelsize=20)
     ax.axhline(y=1.3, linestyle='--', color='lightgray')
     ax.axvline(x=1, linestyle='--', color='lightgray')
 
+    print(volcano_data)
     file = file_name + "_volcano.pdf"
     fig.savefig(os.path.join(data_path, file))
     plt.close()
