@@ -7,9 +7,11 @@ def add_ms_args(parser: ArgumentParser):
         parser: An ArgumentParser.
     """
 
-    ## File arguments
+    ## File and data arguments
     parser.add_argument('--files', type=str, nargs="*", default=None,
-        help='names of pickle files')
+        help='names of pickle files for analysis/training the classifier')
+    parser.add_argument('--test', type=str, nargs="*", default=None,
+        help='names of pickle files to specify test data')
     parser.add_argument('--data_path', default=None,
         help='path to load data from')
     parser.add_argument('--type_path', default=None,
@@ -46,12 +48,16 @@ def add_ms_args(parser: ArgumentParser):
         help='name of negative class for re-labling')
 
     ## Analysis arguments
+    parser.add_argument('--normalization', type=str, default='zscore',
+        help='type of normalization to use for classification')
     parser.add_argument('--volcano', action='store_true', default=False,
         help='use to plot volcano plots')
     parser.add_argument('--pca', action='store_true', default=False,
         help='use to plot PCA')
-    parser.add_argument('--class_type', type=str, nargs="*", default='svm',
+    parser.add_argument('--class_type', type=str, nargs="*", default=['svm'],
         help='type of classifier: svm, random forest, logistic regression')
+    parser.add_argument('--kernel', type=str, nargs="*", default=['linear'],
+        help='type of kernel for svm: linear, rbf, poly')
     parser.add_argument('--num_folds', type=int, default=5,
         help='number of folds for cross validation')
 

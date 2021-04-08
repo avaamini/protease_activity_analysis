@@ -7,12 +7,19 @@ import seaborn as sns
 import matplotlib
 import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 
 from matplotlib.patches import Ellipse
 from sklearn import svm, model_selection, metrics, ensemble
 from plotnine import ggplot, geom_tile, aes, scale_fill_gradient2, coord_equal, \
     themes
 from adjustText import adjust_text
+
+# Set default font to Arial
+# Say, "the default sans-serif font is Arial
+matplotlib.rcParams['font.sans-serif'] = "Arial"
+# Then, "ALWAYS use sans-serif fonts"
+matplotlib.rcParams['font.family'] = "sans-serif"
 
 def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
     """
@@ -138,7 +145,7 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
     pc2 = explained_variance[1]*100
     ax.set_xlabel('PC1 ('+ "%0.1f" % (pc1) + '% explained var.)', fontsize = 20)
     ax.set_ylabel('PC2 ('+ "%0.1f" % (pc2) + '% explained var.)', fontsize = 20)
-    ax.set_title('PCA Analysis of Inventiv data', fontsize = 20)
+    ax.set_title('PCA Analysis of MS data', fontsize = 20)
     ax.tick_params(axis='both', labelsize=18)
 
     targets = finalDf['Sample Type'].unique()
@@ -149,7 +156,6 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
     COLORS = ['k', 'deepskyblue', 'lightseagreen', 'orangered', 'coral', 'dodgerblue', 'indigo', 'darkslategray']
     colors = COLORS[:len(targets)]
 
-    print(finalDf)
     for target, color in zip(targets,colors):
         indicesToKeep = finalDf['Sample Type'] == target
         ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
@@ -161,7 +167,7 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , ax, n_std = 2, edgecolor = color)
 
-    l = ax.legend(loc='upper right', ncol=1, handlelength=0, fontsize=16,
+    l = ax.legend(loc='upper right', ncol=1, handlelength=0, fontsize=14,
         frameon=False)
 
     for handle, text in zip(l.legendHandles, l.get_texts()):
@@ -198,12 +204,9 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
         undo_multi = data_matrix.reset_index()
         cond1 = undo_multi[undo_multi['Sample Type'].isin(group1)]
         cond1_means = cond1.mean(axis=0)
-        print(cond1_means)
 
         cond2 = undo_multi[undo_multi['Sample Type'].isin(group2)]
-        print(undo_multi)
         cond2_means = cond2.mean(axis=0)
-        print(cond2_means)
 
         fold_change = cond2_means/cond1_means
 
@@ -245,21 +248,19 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
         texts.append(plt.text(x, y, l, size=12))
     adjust_text(texts)
 
-    ax.set_xlabel('Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')', fontsize = 20)
+    ax.set_xlabel('Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')', fontname='Arial', fontsize = 20)
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 20)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
+    ax.set_title('Volcano plot of MS data', fontsize=20)
     ax.tick_params(axis='both', labelsize=18)
-    # Hardcoded for AIP experiment
-    # ax.set_ylim(bottom=-0.2831143480741629, top=np.ceil(5.990397227318687))
-    
 
-    # plt.rc('xtick', labelsize=40)
-    # plt.rc('ytick', labelsize=20)
+
+    plt.rc('xtick', labelsize=40)
+    plt.rc('ytick', labelsize=20)
     ax.axhline(y=1.3, linestyle='--', color='lightgray')
     ax.axvline(x=1, linestyle='--', color='lightgray')
 
-    print(volcano_data)
     file = file_name + "_volcano.pdf"
     fig.savefig(os.path.join(data_path, file))
     plt.close()
@@ -340,10 +341,10 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
         # Plot data
         mean_t = mean.T
         ax = mean_t.plot(legend=True, marker='.', markersize=10, figsize=(7, 5), yerr=std.T)
-        ax.legend(loc='best', fontsize=12)
-        ax.set_xlabel('Time (min)', fontsize=14)
-        ax.set_ylabel(ylabel, fontsize=14)
-        ax.set_title(title, fontsize=15)
+        ax.legend(loc='best', prop=fm.FontProperties(family='Arial'), fontsize=12)
+        ax.set_xlabel('Time (min)', fontname='Arial', fontsize=14)
+        ax.set_ylabel(ylabel, fontname='Arial', fontsize=14)
+        ax.set_title(title, fontname='Arial', fontsize=15)
         ax.figure.savefig(path)
 
         plt.close()

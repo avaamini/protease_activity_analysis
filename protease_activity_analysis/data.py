@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import itertools
 import os
+import scipy.stats as stats
 
 from utils import get_output_dir
 
@@ -111,27 +112,19 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
 
     out_dir = get_output_dir()
     filtered_matrix.to_csv(os.path.join(out_dir, f"{save_name}_filtered_matrix.csv"))
-    
-##    # mean scaling
-##    mean_scaled = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
-##    out_dir = get_output_dir()
-##    mean_scaled.to_csv(os.path.join(out_dir, f"{save_name}_mean_scaled.csv"))
-####    
-##    return mean_scaled
 
-    import scipy.stats as stats
-    # across samples
-    zscore = pd.DataFrame(stats.zscore(filtered_matrix, axis=0))
-##
-##    # across reporter
-##    #zscore = pd.DataFrame(stats.zscore(filtered_matrix, axis=1))
-##
-    zscore.columns = filtered_matrix.columns
-    zscore.index = filtered_matrix.index
+    # mean scaling
+    mean_scaled = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
+    out_dir = get_output_dir()
+    mean_scaled.to_csv(os.path.join(out_dir, f"{save_name}_mean_scaled.csv"))
 
-    zscore.to_csv(os.path.join(out_dir, f"{save_name}_z_scored.csv"))
+    # z scoring across samples
+    z_scored = pd.DataFrame(stats.zscore(filtered_matrix, axis=0))
+    z_scored.columns = filtered_matrix.columns
+    z_scored.index = filtered_matrix.index
+    z_scored.to_csv(os.path.join(out_dir, f"{save_name}_z_scored.csv"))
 
-    return zscore
+    return mean_scaled, z_scored
 
 
 def make_multiclass_dataset(data_dir, file_list, classes_to_include):
