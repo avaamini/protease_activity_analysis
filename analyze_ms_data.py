@@ -9,7 +9,7 @@ def load_urine_data(args):
     data_dir = get_data_dir()
 
     # read syneos file
-    syneos_data = paa.data.load_syneos(args.data_path, args.type_path, args.sheets)
+    syneos_data = paa.data.load_syneos(args.data_path, args.type_path, args.stock_path, args.sheets)
 
     # read plex/reporter file
     plex, renamed = paa.data.get_plex(args.plex_path)

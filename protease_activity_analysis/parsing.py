@@ -18,10 +18,13 @@ def add_ms_args(parser: ArgumentParser):
         help='path to load Sample Types from')
     parser.add_argument('--plex_path', type=str, default=None,
         help='file that contains reporter/plex nomenclature')
+    parser.add_argument('--stock_path', type=str, default=None,
+        help='file that contains sample/stock pairs for normalization. \
+            if not specified, assumes only one stock by default.')
+    parser.add_argument('--stock', type=str, nargs="*", default=None,
+        help='name of the stocks for normalization. can specify multiple.')
     parser.add_argument('-n', '--sheets', type=str, nargs="*", default=None,
         help='number of sheets for excel file')
-    parser.add_argument('--stock', type=str, default=None,
-        help='name of the stock in the Inventiv file')
 
     ## Filter, group, and label arguments
     parser.add_argument('--type_filter', type=str, nargs="*", default=None,

@@ -7,12 +7,13 @@ import scipy.stats as stats
 
 from utils import get_output_dir
 
-def load_syneos(data_path, id_path, sheet_names):
+def load_syneos(data_path, id_path, stock_path, sheet_names):
     """ Read a Syneos file from a path and extract data
 
     Args:
         data_path (str): path to the Syneos xlsx file
         id_path (str): path to the SampleType xlsx file
+        stock_path (str): path to the StockNormalization xlsx file
         sheet_names (list, str): sheets to read
 
     Returns:
@@ -26,6 +27,7 @@ def load_syneos(data_path, id_path, sheet_names):
         sheet_names, header=1, usecols=usecols)
 
     df = None
+    indices = ['Sample Type', 'Sample ID'] #HARDCODED
     for key, data in sheet_data.items():
         if df is None:
             df = data
@@ -37,6 +39,13 @@ def load_syneos(data_path, id_path, sheet_names):
     sample_type = sample_to_type.reindex(df["Sample ID"])
     df['Sample Type'] = sample_type.values
 
+    # read Stock file if it is specified for the normalization
+    if stock_path is not None:
+        stock_info = pd.read_excel(stock_path, header=0, index_col=0)
+        stock = stock_info.reindex(df["Sample ID"])
+        df['Stock Type'] = stock.values
+        indices.append('Stock Type')
+
     # account for dilution factors
     replace_inds = ~np.isnan(df['Area Ratio'])
     df.loc[replace_inds,'Ratio'] = df.loc[replace_inds,'Area Ratio']
@@ -44,8 +53,9 @@ def load_syneos(data_path, id_path, sheet_names):
     # create data_matrix n x m where m is the number of reporters
     data_matrix = pd.pivot_table(df,
         values='Ratio',
-        index=['Sample Type', 'Sample ID'],
+        index=indices,
         columns='Compound')
+
     return data_matrix
 
 def process_syneos_data(data_matrix, features_to_use, stock_id,
@@ -55,7 +65,7 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     Args:
         data_matrix (pandas.df): syneos MS data w/ sample ID and type
         features_to_use (list, str): reporters to include
-        stock_id (str): Sample Type ID for stock to use for normalization
+        stock_id (list, str): Sample Type ID for stock to use for normalization
         sample_type_to_use (list, str): sample types to use
         sample_ID_to_use (str): contains (sub)string indicator of samples to
             include, e.g. "2B" or "2hr" to denote 2hr samples. default=None
@@ -87,8 +97,18 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     filtered_matrix = new_matrix[~zero_rows]
 
     # normalize everything to stock
-    stock = filtered_matrix.loc[('Stock',stock_id)].to_numpy()
-    filtered_matrix = filtered_matrix / stock
+    if 'Stock Type' in filtered_matrix.index.names: # multiple stocks specified
+        for stock in stock_id:
+            stock_values = filtered_matrix.loc['Stock'].loc[stock].to_numpy()
+
+            # find the samples matching the current stock and normalize
+            filtered_matrix.loc[(
+                filtered_matrix.index.get_level_values('Stock Type')==stock)] \
+                /= stock_values
+    else: # one stock only, no additional file
+        stock_values = filtered_matrix.loc['Stock'].loc[stock_id].to_numpy()
+        filtered_matrix = filtered_matrix / stock_values
+
     filtered_matrix = filtered_matrix.drop('Stock', level='Sample Type')
 
     # eliminate those samples that do not meet the sample type name criterion
@@ -125,7 +145,6 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     z_scored.to_csv(os.path.join(out_dir, f"{save_name}_z_scored.csv"))
 
     return mean_scaled, z_scored
-
 
 def make_multiclass_dataset(data_dir, file_list, classes_to_include):
     """ Creates a dataset for multiclass classification.
