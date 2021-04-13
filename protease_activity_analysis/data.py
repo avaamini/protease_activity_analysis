@@ -144,6 +144,7 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     z_scored.index = filtered_matrix.index
     z_scored.to_csv(os.path.join(out_dir, f"{save_name}_z_scored.csv"))
 
+    import pdb; pdb.set_trace()
     return mean_scaled, z_scored
 
 def make_multiclass_dataset(data_dir, file_list, classes_to_include):
@@ -181,8 +182,11 @@ def make_multiclass_dataset(data_dir, file_list, classes_to_include):
     # prepare the data and return
     data = data.reset_index()
     data = data.iloc[inds_to_keep, :]
-    data['Class Labels'] = class_labels
-    data = data.set_index(['Sample Type', 'Sample ID', 'Class Labels'])
+    data_index_headers = ['Sample Type', 'Sample ID', 'Class Labels']
+    if 'Stock Type' in data.keys():
+        data_index_headers.append('Stock Type')
+    data = data.set_index(data_index_headers)
+
     X = data.to_numpy()
     Y = data.index.get_level_values('Class Labels').to_numpy()
 
@@ -240,10 +244,14 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
     data = data.reset_index()
     data = data.iloc[inds_to_keep, :]
     data['Class Labels'] = class_labels
-    data = data.set_index(['Sample Type', 'Sample ID', 'Class Labels'])
+    data_index_headers = ['Sample Type', 'Sample ID', 'Class Labels']
+    if 'Stock Type' in data.keys():
+        data_index_headers.append('Stock Type')
+    data = data.set_index(data_index_headers)
+
     X = data.to_numpy()
     Y = data.index.get_level_values('Class Labels').to_numpy()
-
+    
     return X, Y, data
 
 def get_plex(data_path):
