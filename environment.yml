@@ -8,8 +8,12 @@ dependencies:
   - matplotlib
   - pandas
   - xlrd
+  - openpyxl
   - spyder
   - seaborn
-  - plotnine
-  - adjusttext
+  - pip
+  - pip:
+    - plotnine
+    - adjusttext
+
 prefix: /Users/avasoleimany/miniconda2/envs/paa

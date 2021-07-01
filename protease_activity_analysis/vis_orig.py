@@ -341,7 +341,7 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
         # Plot data
         mean_t = mean.T
         ax = mean_t.plot(legend=True, marker='.', markersize=10, figsize=(7, 5), yerr=std.T)
-        ax.legend(loc='upper left', prop=fm.FontProperties(family='Arial'), fontsize=8)
+        ax.legend(loc='best', prop=fm.FontProperties(family='Arial'), fontsize=12)
         ax.set_xlabel('Time (min)', fontname='Arial', fontsize=14)
         ax.set_ylabel(ylabel, fontname='Arial', fontsize=14)
         ax.set_title(title, fontname='Arial', fontsize=15)
@@ -366,7 +366,7 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
     info = str(raw.columns[0]).split('-')
     prot = info[0]
     # print('prot:', prot)
-    # sub = info[1]
+    sub = info[1]
     # print('sub:', sub)
 
     # Create new directory to save outputs with name of 'prot'
@@ -382,13 +382,11 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
     raw_mean = raw.groupby(raw.columns[0]).agg([np.mean])
     raw_mean.columns = raw_mean.columns.droplevel(1)
     init_rate = (raw_mean[linear_time] - raw_mean[0]) / (linear_time)
-    name_str = 'Initial rate at t=' + str(linear_time)
-    init_rate = init_rate.to_frame(name=name_str)
+    init_rate = init_rate.to_frame(name='Initial rate')
 
     # Calculate z_score based on init_rate
     z_score_rate = z_score(init_rate)
-    name_str = 'Z-scored initial rate at t=' + str(linear_time)
-    # z_score_rate= z_score_rate.to_frame(name=name_str)
+    # z_score_rate= z_score_rate.to_frame(name='Z-scored initial rate')
 
     # Find the mean fold change for all substrates at all times
     fc_mean = raw_mean.div(raw_mean[0], axis=0)
@@ -402,8 +400,7 @@ def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
 
     # Calculate z_score by fold change
     z_score_fc = z_score(fc_x)
-    name_str = 'Z-scored fold change at t=' + str(fc_time)
-    z_score_fc = z_score_fc.to_frame(name=name_str)
+    z_score_fc = z_score_fc.to_frame(name='Z-scored fold change')
 
     # Plot fc kinetic data
     data = fc.reset_index()
