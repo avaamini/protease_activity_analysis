@@ -48,6 +48,8 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
     scores_test = []
     cms_test = []
 
+    classes = np.unique(Y)
+
     for i, (train, val) in enumerate(cv.split(X, Y)):
         X_val = X[val]
         Y_val = Y[val]
@@ -70,9 +72,13 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
             prob_test = classifier.predict_proba(X_test)
             score_test = classifier.score(X_test, Y_test)
             preds_test = classifier.predict(X_test)
-            cm_test = metrics.confusion_matrix(Y_test, preds_test)
-            cm_test_norm = cm_test / cm_test.sum(axis=1, keepdims=1) # normalized
 
+            classes_test = np.unique(Y_test)
+            cm_test = metrics.confusion_matrix(Y_test, preds_test)
+            classes_found = np.isin(classes, classes_test)
+            cm_test = cm_test[classes_found, :]
+            
+            cm_test_norm = cm_test / cm_test.sum(axis=1, keepdims=1) # normalized
             probs_test.append(prob_test)
             scores_test.append(score_test)
             cms_test.append(cm_test_norm)
@@ -80,7 +86,6 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
     cms_val = np.asarray(cms_val)
     cms_avg_val = np.mean(cms_val, axis=0)
     cm_df_val = pd.DataFrame(data = cms_avg_val)
-    classes = np.unique(Y)
 
     ## Plot confusion matrix, average over the folds
     g_val = sns.heatmap(cm_df_val, annot=True,
@@ -100,10 +105,10 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
         cms_test = np.asarray(cms_test)
         cms_avg_test = np.mean(cms_test, axis=0)
         cm_df_test = pd.DataFrame(data = cms_avg_test)
-
+        test_classes = np.unique(Y_test)
         ## Plot confusion matrix, average over the folds
         g_test = sns.heatmap(cm_df_test, annot=True,
-            xticklabels=classes, yticklabels=classes, cmap='Blues')
+            xticklabels=classes, yticklabels=test_classes, cmap='Blues')
         g_test.set_yticklabels(g_test.get_yticklabels(), rotation = 0)
         g_test.set_xlabel('Predicted Label', fontsize=12)
         g_test.set_ylabel('True Label', fontsize=12)
