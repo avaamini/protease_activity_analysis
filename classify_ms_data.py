@@ -29,6 +29,14 @@ if __name__ == '__main__':
     # Multiclass classification
     if args.multi_class is not None:
         X, Y, _ = paa.data.make_multiclass_dataset(data_dir, files, args.multi_class)
+
+        # independent test set
+        X_test = None
+        Y_test = None
+        if args.test is not None:
+            X_test, Y_test, _ = paa.data.make_multiclass_dataset(data_dir,
+                test_files, args.multi_class)
+
         for classifier in args.class_type:
             for kernel in args.kernel:
                 classifier_name = classifier
@@ -37,9 +45,10 @@ if __name__ == '__main__':
 
                 file_name = args.save_name + "_" + classifier_name
                 save_name = os.path.join(out_dir, file_name)
-                # validation set evaluation w/ cross-validation
-                probs, scores, cms = paa.classify.multiclass_classify(X, Y,
-                    classifier, kernel, args.num_folds, save_name)
+                # set evaluation w/ cross-validation
+                val_class_dict, test_class_dict = paa.classify.multiclass_classify(
+                    X, Y, classifier, kernel, args.num_folds, save_name,
+                    X_test, Y_test)
 
     else: # Binary classification
         # k fold cross validation
@@ -60,15 +69,17 @@ if __name__ == '__main__':
                     classifier_name = classifier_name + "_" + kernel
 
                 # evaluation w/ cross-validation
-                val_class_dict, test_class_dict = paa.classify.classify_kfold_roc(X, Y,
-                    classifier, kernel, args.num_folds, args.pos_class, X_test, Y_test)
+                val_class_dict, test_class_dict = paa.classify.classify_kfold_roc(
+                    X, Y, classifier, kernel, args.num_folds, args.pos_class,
+                    X_test, Y_test)
 
                 # cross-validation performance
                 tprs_val = val_class_dict["tprs"]
                 aucs_val = val_class_dict["aucs"]
 
                 save_name_val = args.save_name + "_crossval_" + classifier_name
-                paa.vis.plot_kfold_roc(tprs_val, aucs_val, out_dir, save_name_val, show_sd=True)
+                paa.vis.plot_kfold_roc(tprs_val, aucs_val,
+                    out_dir, save_name_val, show_sd=True)
 
                 # independent test set performance
                 if args.test is not None:
@@ -76,11 +87,12 @@ if __name__ == '__main__':
                     aucs_test = test_class_dict["aucs"]
 
                     save_name_test = args.save_name + "_test_" + classifier_name
-                    paa.vis.plot_kfold_roc(tprs_test, aucs_test, out_dir, save_name_test, show_sd=True)
+                    paa.vis.plot_kfold_roc(tprs_test, aucs_test,
+                        out_dir, save_name_test, show_sd=True)
 
 
                 # Recursive feature elimination analysis ONLY with rf, lr, linear svm
                 if classifier == "svm" and kernel != "linear":
                     break
-                paa.classify.recursive_feature_elimination(X, Y, classifier, kernel,
-                    args.num_folds, out_dir, save_name_val)
+                paa.classify.recursive_feature_elimination(X, Y,
+                    classifier, kernel, args.num_folds, out_dir, save_name_val)

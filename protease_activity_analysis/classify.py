@@ -13,7 +13,7 @@ matplotlib.rcParams['font.sans-serif'] = "Arial"
 # Then, "ALWAYS use sans-serif fonts"
 matplotlib.rcParams['font.family'] = "sans-serif"
 
-def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path):
+def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=None, Y_test=None):
     """Perform multiclass sample classification with k-fold cross validation.
     Plots confusion matrix heatmap.
 
@@ -28,8 +28,6 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path):
         save_path: path to save
 
     Returns:
-        probs: class probabilities for samples in test splits
-        scores: prediction scores for samples in test splits
     """
     # splits for k-fold cross validation
     cv = model_selection.StratifiedKFold(n_splits=k_splits)
@@ -42,9 +40,13 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path):
     elif class_type == "lr": # logistic regression with L2 loss
         classifier = linear_model.LogisticRegression(random_state=0)
 
-    probs = []
-    scores = []
-    cms = []
+    probs_val = []
+    scores_val = []
+    cms_val = []
+
+    probs_test = []
+    scores_test = []
+    cms_test = []
 
     for i, (train, val) in enumerate(cv.split(X, Y)):
         X_val = X[val]
@@ -58,27 +60,66 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path):
         cm = metrics.confusion_matrix(Y_val, pred) # confusion matrix
         cm_norm = cm / cm.sum(axis=1, keepdims=1) # normalized
 
-        probs.append(prob)
-        scores.append(score)
-        cms.append(cm_norm)
+        probs_val.append(prob)
+        scores_val.append(score)
+        cms_val.append(cm_norm)
 
-    cms = np.asarray(cms)
-    cms_avg = np.mean(cms, axis=0)
-    cm_df = pd.DataFrame(data = cms_avg)
+        # if independent test set provided
+        if (X_test is not None) and (Y_test is not None):
+            # predict on test set and return ROC metrics
+            prob_test = classifier.predict_proba(X_test)
+            score_test = classifier.score(X_test, Y_test)
+            preds_test = classifier.predict(X_test)
+            cm_test = metrics.confusion_matrix(Y_test, preds_test)
+            cm_test_norm = cm_test / cm_test.sum(axis=1, keepdims=1) # normalized
+
+            probs_test.append(prob_test)
+            scores_test.append(score_test)
+            cms_test.append(cm_test_norm)
+
+    cms_val = np.asarray(cms_val)
+    cms_avg_val = np.mean(cms_val, axis=0)
+    cm_df_val = pd.DataFrame(data = cms_avg_val)
     classes = np.unique(Y)
 
     ## Plot confusion matrix, average over the folds
-    g = sns.heatmap(cm_df, annot=True, xticklabels=classes, yticklabels=classes, cmap='Blues')
-    g.set_yticklabels(g.get_yticklabels(), rotation = 0)
-    g.set_xlabel('Predicted Label', fontsize=12)
-    g.set_ylabel('True Label', fontsize=12)
-    g.set_title('Validation Set Performance', fontsize=14)
+    g_val = sns.heatmap(cm_df_val, annot=True,
+        xticklabels=classes, yticklabels=classes, cmap='Blues')
+    g_val.set_yticklabels(g.get_yticklabels(), rotation = 0)
+    g_val.set_xlabel('Predicted Label', fontsize=12)
+    g_val.set_ylabel('True Label', fontsize=12)
+    g_val.set_title('Validation Set Performance', fontsize=14)
 
-    file = save_path + "_confusion.pdf"
-    fig = g.get_figure()
-    fig.savefig(file)
+    file_val = save_path + "_val_confusion.pdf"
+    fig_val = g_val.get_figure()
+    fig_val.savefig(file_val)
 
-    return probs, scores, cms
+    if (X_test is not None) and (Y_test is not None):
+        cms_test = np.asarray(cms_test)
+        cms_avg_test = np.mean(cms_test, axis=0)
+        cm_df_test = pd.DataFrame(data = cms_avg_test)
+
+        ## Plot confusion matrix, average over the folds
+        g_test = sns.heatmap(cm_df_test, annot=True,
+            xticklabels=classes, yticklabels=classes, cmap='Blues')
+        g_test.set_yticklabels(g.get_yticklabels(), rotation = 0)
+        g_test.set_xlabel('Predicted Label', fontsize=12)
+        g_test.set_ylabel('True Label', fontsize=12)
+        g_test.set_title('Test Set Performance', fontsize=14)
+
+        file_test = save_path + "_test_confusion.pdf"
+        fig_test = g_test.get_figure()
+        fig_test.savefig(file_test)
+
+    ## TODO: could possibly change this to a data frame
+    val_dict = {"probs": probs_val, "scores": scores_val, "cms": cms_val}
+
+    if (X_test is None) and (Y_test is None):
+        test_dict = None
+    else:
+        test_dict = {"probs": probs_test, "scores": scores_test, "cms": cms_test}
+
+    return val_dict, test_dict
 
 def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=None, Y_test=None):
     """Perform sample binary classification with k-fold cross validation and ROC analysis.
@@ -152,12 +193,14 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=Non
             aucs_test.append(auc_test)
 
     ## TODO: could possibly change this to a data frame
-    val_dict = {"probs": probs_val, "scores": scores_val, "tprs": tprs_val, "aucs": aucs_val}
+    val_dict = {"probs": probs_val, "scores": scores_val,
+        "tprs": tprs_val, "aucs": aucs_val}
 
     if (X_test is None) and (Y_test is None):
         test_dict = None
     else:
-        test_dict = {"probs": probs_test, "scores": scores_test, "tprs": tprs_test, "aucs": aucs_test}
+        test_dict = {"probs": probs_test, "scores": scores_test,
+            "tprs": tprs_test, "aucs": aucs_test}
 
     return val_dict, test_dict
 
