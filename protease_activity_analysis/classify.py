@@ -85,7 +85,7 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
     ## Plot confusion matrix, average over the folds
     g_val = sns.heatmap(cm_df_val, annot=True,
         xticklabels=classes, yticklabels=classes, cmap='Blues')
-    g_val.set_yticklabels(g.get_yticklabels(), rotation = 0)
+    g_val.set_yticklabels(g_val.get_yticklabels(), rotation = 0)
     g_val.set_xlabel('Predicted Label', fontsize=12)
     g_val.set_ylabel('True Label', fontsize=12)
     g_val.set_title('Validation Set Performance', fontsize=14)
@@ -93,6 +93,8 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
     file_val = save_path + "_val_confusion.pdf"
     fig_val = g_val.get_figure()
     fig_val.savefig(file_val)
+    fig_val.clf()
+    plt.close(fig_val)
 
     if (X_test is not None) and (Y_test is not None):
         cms_test = np.asarray(cms_test)
@@ -102,7 +104,7 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
         ## Plot confusion matrix, average over the folds
         g_test = sns.heatmap(cm_df_test, annot=True,
             xticklabels=classes, yticklabels=classes, cmap='Blues')
-        g_test.set_yticklabels(g.get_yticklabels(), rotation = 0)
+        g_test.set_yticklabels(g_test.get_yticklabels(), rotation = 0)
         g_test.set_xlabel('Predicted Label', fontsize=12)
         g_test.set_ylabel('True Label', fontsize=12)
         g_test.set_title('Test Set Performance', fontsize=14)
@@ -110,6 +112,8 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
         file_test = save_path + "_test_confusion.pdf"
         fig_test = g_test.get_figure()
         fig_test.savefig(file_test)
+        fig_test.clf()
+        plt.close(fig_test)
 
     ## TODO: could possibly change this to a data frame
     val_dict = {"probs": probs_val, "scores": scores_val, "cms": cms_val}

@@ -170,7 +170,6 @@ def make_multiclass_dataset(data_dir, file_list, classes_to_include):
         data = pd.read_pickle(path)
         matrices.append(data)
     data = pd.concat(matrices)
-
     # get Sample Type and copy for class labeling
     sample_type = data.index.get_level_values('Sample Type').to_numpy()
     class_labels = np.copy(sample_type)
@@ -182,6 +181,7 @@ def make_multiclass_dataset(data_dir, file_list, classes_to_include):
     # prepare the data and return
     data = data.reset_index()
     data = data.iloc[inds_to_keep, :]
+    data['Class Labels'] = class_labels
     data_index_headers = ['Sample Type', 'Sample ID', 'Class Labels']
     if 'Stock Type' in data.keys():
         data_index_headers.append('Stock Type')
@@ -251,7 +251,7 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
 
     X = data.to_numpy()
     Y = data.index.get_level_values('Class Labels').to_numpy()
-    
+
     return X, Y, data
 
 def get_plex(data_path):
