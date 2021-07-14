@@ -131,23 +131,28 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
     y = data_matrix.loc[:, ['Sample Type']].values
     x = StandardScaler().fit_transform(x)
 
-    pca = PCA(n_components=2)
+    pca = PCA(n_components=5)
     principalComponents = pca.fit_transform(x)
     finalDf = pd.DataFrame(data = {
         'principal component 1': principalComponents[:,0],
         'principal component 2': principalComponents[:,1],
+        #'principal component 3': principalComponents[:,2],
         'Sample Type': data_matrix['Sample Type']})
 
     fig = plt.figure(figsize = (8,8))
+    #ax = fig.add_subplot(projection="3d")
     ax = fig.add_subplot(1,1,1)
     explained_variance = pca.explained_variance_ratio_
     pc1 = explained_variance[0]*100
     pc2 = explained_variance[1]*100
+    #pc3 = explained_variance[2]*100
     ax.set_xlabel('PC1 ('+ "%0.1f" % (pc1) + '% explained var.)', fontsize = 20)
     ax.set_ylabel('PC2 ('+ "%0.1f" % (pc2) + '% explained var.)', fontsize = 20)
+    #ax.set_zlabel('PC3 ('+ "%0.1f" % (pc3) + '% explained var.)', fontsize = 20)
     ax.set_title('PCA Analysis of MS data', fontsize = 20)
     ax.tick_params(axis='both', labelsize=18)
 
+    
     targets = finalDf['Sample Type'].unique()
     # COLORS accounts for 10 groups; @Melodi can revise as you wish
     #COLORS = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue',
@@ -160,12 +165,21 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
         indicesToKeep = finalDf['Sample Type'] == target
         ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
                    , finalDf.loc[indicesToKeep, 'principal component 2']
-                   , c = color
+                   #, finalDf.loc[indicesToKeep, 'principal component 3']
+		  , c = color
                    , s = 50
                    , label = target)
         confidence_ellipse(finalDf.loc[indicesToKeep, 'principal component 1']
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , ax, n_std = 2, edgecolor = color)
+
+    #COMMENT OUT IF BIPLOT IS NOT WANTED 
+    #coeff = np.transpose(pca.components_[0:2, :])
+    #n = coeff.shape[0] 
+    #for i in range(n):
+       # plt.arrow(0, 0, coeff[i,0]*5, coeff[i,1]*5,color = 'r',alpha = 0.5)
+        #plt.text(coeff[i,0]* 6, coeff[i,1] * 6, "Var"+str(i+1), color = 'g', ha = 'center', va = 'center')
+    #
 
     l = ax.legend(loc='upper right', ncol=1, handlelength=0, fontsize=14,
         frameon=False)
