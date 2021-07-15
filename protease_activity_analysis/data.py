@@ -144,7 +144,6 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     z_scored.index = filtered_matrix.index
     z_scored.to_csv(os.path.join(out_dir, f"{save_name}_z_scored.csv"))
 
-    import pdb; pdb.set_trace()
     return mean_scaled, z_scored
 
 def make_multiclass_dataset(data_dir, file_list, classes_to_include):
