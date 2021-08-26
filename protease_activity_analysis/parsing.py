@@ -10,8 +10,8 @@ def add_ms_args(parser: ArgumentParser):
     ## File and data arguments
     parser.add_argument('--files', type=str, nargs="*", default=None,
         help='names of pickle files for analysis/training the classifier')
-    parser.add_argument('--test', type=str, nargs="*", default=None,
-        help='names of pickle files to specify test data')
+    parser.add_argument('--test_files', type=str, nargs="*", default=None,
+        help='names of pickle files to specify independent test data')
     parser.add_argument('--data_path', default=None,
         help='path to load data from')
     parser.add_argument('--type_path', default=None,
@@ -27,18 +27,23 @@ def add_ms_args(parser: ArgumentParser):
         help='number of sheets for excel file')
 
     ## Filter, group, and label arguments
+    ## Data filtering
     parser.add_argument('--type_filter', type=str, nargs="*", default=None,
         help='nomenclature filter for sample type to use')
     parser.add_argument('--ID_filter', type=str, default=None,
         help='nomenclature filter for sample ID to use')
     parser.add_argument('--ID_exclude', default=None, type=str, nargs='*',
         help='IDs for samples to exclude from the output matrix')
+
+    # Volcano/PCA filtering
     parser.add_argument('--group1', default=None, type=str, nargs='*',
         help='first set of sample types for significance comparison in volcano')
     parser.add_argument('--group2', default=None, type=str, nargs='*',
         help='second set of sample types for significance comparison in volcano')
     parser.add_argument('--pca_groups', default=None, type=str, nargs='*',
         help='specify sample types for consideration in PCA')
+
+    # Classification arguments
     parser.add_argument('--multi_class', type=str, default=None, nargs='*',
         help='names of classes for multi class classification')
     parser.add_argument('--pos_classes', type=str, default=None, nargs="*",
@@ -49,6 +54,8 @@ def add_ms_args(parser: ArgumentParser):
         help='names of negative classes')
     parser.add_argument('--neg_class', type=str, default=None,
         help='name of negative class for re-labling')
+    parser.add_argument('--test_types', type=str, nargs="*", default=None,
+        help='names of sample types to hold out from training; test types')
 
     ## Analysis arguments
     parser.add_argument('--normalization', type=str, default='zscore',

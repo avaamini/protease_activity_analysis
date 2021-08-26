@@ -77,7 +77,7 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
             cm_test = metrics.confusion_matrix(Y_test, preds_test)
             classes_found = np.isin(classes, classes_test)
             cm_test = cm_test[classes_found, :]
-            
+
             cm_test_norm = cm_test / cm_test.sum(axis=1, keepdims=1) # normalized
             probs_test.append(prob_test)
             scores_test.append(score_test)
@@ -131,7 +131,7 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
     return val_dict, test_dict
 
 def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=None, Y_test=None):
-    """Perform sample binary classification with k-fold cross validation and ROC analysis.
+    """binary classification with k-fold cross validation and ROC analysis.
 
     Args:
         X: full dataset (n x m) where n is the number of samples and m is the
@@ -142,12 +142,21 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=Non
         kernel ("linear", "poly", "rbf"): type of kernel for svm
         k_splits: number of splits for cross validation
         pos_class: string name for positive class
+        X_test: independent test dataset (n x m). Includes samples that are
+            excluded from training and only for testing.
+        Y_test: true labels (n x j). Includes labels for samples/classes that
+            are excluded from training and only used for testing.
 
     Returns:
-        probs: class probabilities for samples in test splits
-        scores: prediction scores for samples in test splits
-        tprs: true positive rates for each fold of cross validation, interpolated
-        auc: ROC AUC for each fold of cross validation
+        val_dict: dictionary of performance metrics for classifier evaluated on
+            validation set (probs, scores, tprs, auc)
+        test_dict: dictionary of performance metrics for classifier shown to be
+            evaluated on test set (probs, scores, tprs, aucs)
+
+            probs: class probabilities
+            scores: prediction scores
+            tprs: true positive rates for each fold of cross validation
+            auc: ROC AUC for each fold of cross validation
     """
     # splits for k-fold cross validation
     cv = model_selection.StratifiedKFold(n_splits=k_splits)
@@ -172,6 +181,7 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=Non
     tprs_test = []
     aucs_test = []
 
+    # Training and evaluation
     for i, (train, val) in enumerate(cv.split(X, Y)):
         X_train = X[train]
         Y_train = Y[train]
@@ -196,6 +206,7 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=Non
             # predict on test set and return ROC metrics
             prob_test, score_test, preds_test, interp_tpr_test, auc_test = \
                 classify(classifier, X_test, Y_test, pos_class)
+
             probs_test.append(prob_test)
             scores_test.append(score_test)
             tprs_test.append(interp_tpr_test)

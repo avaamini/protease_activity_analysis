@@ -146,13 +146,18 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
 
     return mean_scaled, z_scored
 
-def make_multiclass_dataset(data_dir, file_list, classes_to_include):
+def make_multiclass_dataset(data_dir, file_list, classes_to_include,
+    test_types=None):
     """ Creates a dataset for multiclass classification.
 
     Args:
         data_dir (str): path to the directory where pickle files are
         file_list (list, str): list of pickle file names as in data_dir
-        classes_to_include (list, str): list of Sample Type labels to consider
+        classes_to_include (list, str): list of Sample Type labels to consider.
+            this should include the test_classes if test_classes are desired.
+        test_types (list, str): list of Sample Type labels to be held out for
+            testing. if None, samples with those Sample Types will be included
+            in the train/validation
 
     Returns:
         X (np array): matrix of size n x m of the data, where n is the number of
@@ -161,6 +166,10 @@ def make_multiclass_dataset(data_dir, file_list, classes_to_include):
             for the samples in the dataset, where k is the number of classes
         data (pd dataframe): pandas data frame containing X, Y, Sample Type, and
             Sample Type ID
+        X_test (np array): matrix of size n x m of the test data
+        Y_test (np array): matrix of size n x k containing the true classification
+            labels for the samples, where k is the number of classes
+        data_test (pd dataframe): df containing X, Y, Sample Type, Sample Type ID
     """
     # read pickle files in file list and load the data
     matrices = []
@@ -174,25 +183,46 @@ def make_multiclass_dataset(data_dir, file_list, classes_to_include):
     class_labels = np.copy(sample_type)
 
     # eliminate the data that is not in the classes_to_include
-    inds_to_keep = [i for i, val in enumerate(class_labels) if val in classes_to_include]
-    class_labels = class_labels[inds_to_keep]
+    class_inds = [i for i, val in enumerate(class_labels) if val in classes_to_include]
+    class_labels = class_labels[class_inds]
 
-    # prepare the data and return
+    # prepare the headers
     data = data.reset_index()
-    data = data.iloc[inds_to_keep, :]
+    data = data.iloc[class_inds, :]
     data['Class Labels'] = class_labels
     data_index_headers = ['Sample Type', 'Sample ID', 'Class Labels']
     if 'Stock Type' in data.keys():
         data_index_headers.append('Stock Type')
-    data = data.set_index(data_index_headers)
+
+    # create separate data frame for the test data
+    X_test = None
+    Y_test = None
+    data_test = None
+    if test_classes != None:
+        data_test = data.copy()
+        test_inds = []
+        for i, val in enumerate(sample_id):
+            has_type = [(test_type in val) for test_type in test_types]
+            if any(has_type):
+                test_inds.append(i)
+        mask = data_test.index.isin(test_inds)
+
+        data_test = data_test[mask]
+        data_test = data_test.set_index(data_index_headers)
+
+        data = data[~mask]
+        data = data.set_index(data_index_headers)
+
+        X_test = data_test.to_numpy()
+        Y_test = data_test.index.get_level_values('Class Labels').to_numpy()
 
     X = data.to_numpy()
     Y = data.index.get_level_values('Class Labels').to_numpy()
 
-    return X, Y, data
+    return X, Y, data, X_test, Y_test, data_test
 
 def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
-    neg_classes=None, neg_class=None, multi_class=False):
+    neg_classes=None, neg_class=None, test_types=None):
     """ Creates a dataset for binary classification.
 
     Args:
@@ -204,14 +234,25 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
         neg_classes (list, str): list of Sample Type labels to be considered in
             the negative class
         neg_class (str): what to rename the negative class
+        test_types (list, str): list of Sample Type labels to be used for the
+            separate test cohort
 
     Returns:
         X (np array): matrix of size n x m of the data, where n is the number of
-            samples and m is the number of features
+            samples and m is the number of features. for training/validation
         Y (np array): matrix of size n x 1 containing the classification labels
-            for the samples in the dataset, for binary classification problem
+            for the samples in the dataset, for binary classification problem.
+            for training/validation
         data (pd dataframe): pandas data frame containing X, Y, Sample Type, and
             Sample Type ID
+        X_test (np array): matrix of size n x m of the data, where n is the number
+            of samples and m is the number of features. for test. Defaults to
+            None if test_classes=None
+        Y_test (np array): matrix of size n x 1 containing the classification
+            labels for the samles in the dataset, for binary classification
+            problems. for testing.
+        data_test (pd dataframe): pandas data frame containing X_test, Y_test,
+            Sample Type, and Sample Type ID
     """
     # read pickle files in file list and load the data
     matrices = []
@@ -221,8 +262,9 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
         matrices.append(data)
     data = pd.concat(matrices)
 
-    # get Sample Type and copy for class labeling
+    # get Sample Type, ID, and copy for class labeling
     sample_type = data.index.get_level_values('Sample Type').to_numpy()
+    sample_id = data.index.get_level_values('Sample ID').to_numpy()
     class_labels = np.copy(sample_type)
 
     # convert positive classes if necessary
@@ -234,24 +276,47 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
         neg_inds = [i for i, val in enumerate(sample_type) if val in neg_classes]
         class_labels[neg_inds] = neg_class
 
-    # eliminate the data that is not in the pos_class or the neg_class
+    # eliminate the data that is not in the neg_class, the pos_class
     classes = [neg_class, pos_class]
-    inds_to_keep = [i for i, val in enumerate(class_labels) if val in classes]
-    class_labels = class_labels[inds_to_keep]
+    class_inds = [i for i, val in enumerate(class_labels) if val in classes]
+    class_labels = class_labels[class_inds]
 
     # prepare the data and return
     data = data.reset_index()
-    data = data.iloc[inds_to_keep, :]
+    data = data.iloc[class_inds, :]
     data['Class Labels'] = class_labels
     data_index_headers = ['Sample Type', 'Sample ID', 'Class Labels']
     if 'Stock Type' in data.keys():
         data_index_headers.append('Stock Type')
-    data = data.set_index(data_index_headers)
 
+    # separate into the train/val dataset and the test dataset (consisting of
+    #   specified sample types
+    X_test = None
+    Y_test = None
+    data_test = None
+    data_test = data.copy()
+    if test_types != None:
+        test_inds = []
+        for i, val in enumerate(sample_id):
+            has_type = [(test_type in val) for test_type in test_types]
+            if any(has_type):
+                test_inds.append(i)
+
+        mask = data_test.index.isin(test_inds)
+
+        data_test = data[mask]
+        data_test = data_test.set_index(data_index_headers)
+
+        data = data[~mask]
+
+        X_test = data_test.to_numpy()
+        Y_test = data_test.index.get_level_values('Class Labels').to_numpy()
+
+    data = data.set_index(data_index_headers)
     X = data.to_numpy()
     Y = data.index.get_level_values('Class Labels').to_numpy()
 
-    return X, Y, data
+    return X, Y, data, X_test, Y_test, data_test
 
 def get_plex(data_path):
     """ Reads a csv file with N-plex reporter and name mapping.
