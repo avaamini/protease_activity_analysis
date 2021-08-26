@@ -16,7 +16,8 @@ if __name__ == '__main__':
     if args.files is not None:
         files = args.files
     else: # one file generated from reading in single excel file
-        mean_scaled, z_scored, plex, renamed, pkl_name_mean, pkl_name_z = load_urine_data(args)
+        mean_scaled, z_scored, plex, renamed, pkl_name_mean, pkl_name_z = \
+            load_urine_data(args)
         if args.normalization == 'mean':
             files = [pkl_name_mean]
         if args.normalization == 'zscore':
@@ -58,6 +59,7 @@ if __name__ == '__main__':
                 # set evaluation w/ cross-validation
                 val_class_dict, test_class_dict = paa.classify.multiclass_classify(
                     X, Y, classifier, kernel, args.num_folds, save_name,
+                    args.scale, args.seed,
                     X_test, Y_test)
 
     else: # Binary classification with k fold cross validation
@@ -93,6 +95,7 @@ if __name__ == '__main__':
                 # evaluation w/ cross-validation
                 val_class_dict, test_class_dict = paa.classify.classify_kfold_roc(
                     X, Y, classifier, kernel, args.num_folds, args.pos_class,
+                    args.scale, args.seed,
                     X_test, Y_test)
 
                 # cross-validation performance

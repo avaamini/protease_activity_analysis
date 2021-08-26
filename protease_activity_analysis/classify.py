@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from sklearn import svm, model_selection, metrics, ensemble, linear_model, feature_selection
+from .data import get_scaler
 
 # Set default font to Arial
 # Say, "the default sans-serif font is Arial
@@ -13,7 +14,9 @@ matplotlib.rcParams['font.sans-serif'] = "Arial"
 # Then, "ALWAYS use sans-serif fonts"
 matplotlib.rcParams['font.family'] = "sans-serif"
 
-def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=None, Y_test=None):
+def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path,
+    standard_scale=False, seed=None,
+    X_test=None, Y_test=None):
     """Perform multiclass sample classification with k-fold cross validation.
     Plots confusion matrix heatmap.
 
@@ -26,6 +29,12 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
         kernel ("linear", "poly", "rbf"): type of kernel for svm
         k_splits: number of splits for cross validation
         save_path: path to save
+        standard_scale (bool): whether or not to apply feature scaling
+        seed (int): random seed for setting the random state of the classifer
+        X_test: independent test dataset (n x m). Includes samples that are
+            excluded from training and only for testing.
+        Y_test: true labels (n x j). Includes labels for samples/classes that
+            are excluded from training and only used for testing.
 
     Returns:
     """
@@ -34,11 +43,11 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
 
     if class_type == "svm": # support vector machine with kernel
         classifier = svm.SVC(kernel=kernel, probability=True,
-            random_state=0)
+            random_state=seed)
     elif class_type == "rf": # random forest classifier
-        classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=0)
+        classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=seed)
     elif class_type == "lr": # logistic regression with L2 loss
-        classifier = linear_model.LogisticRegression(random_state=0)
+        classifier = linear_model.LogisticRegression(random_state=seed)
 
     probs_val = []
     scores_val = []
@@ -51,11 +60,19 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
     classes = np.unique(Y)
 
     for i, (train, val) in enumerate(cv.split(X, Y)):
+        X_train = X[train]
+        Y_train = Y[train]
         X_val = X[val]
         Y_val = Y[val]
 
+        # apply scaling
+        if standard_scale:
+            scaler = get_scaler(X_train)
+            X_train = scaler.transform(X_train)
+            X_val = scaler.transform(X_val)
+
         # fit the model and predict
-        classifier.fit(X[train], Y[train])
+        classifier.fit(X_train, Y_train)
         prob = classifier.predict_proba(X_val) # prediction probabilities
         score = classifier.score(X_val, Y_val) # accuracy
         pred = classifier.predict(X_val) # predicted class
@@ -68,6 +85,10 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
 
         # if independent test set provided
         if (X_test is not None) and (Y_test is not None):
+
+            if standard_scale:
+                X_test = scaler.transform(X_test)
+
             # predict on test set and return ROC metrics
             prob_test = classifier.predict_proba(X_test)
             score_test = classifier.score(X_test, Y_test)
@@ -75,8 +96,9 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
 
             classes_test = np.unique(Y_test)
             cm_test = metrics.confusion_matrix(Y_test, preds_test)
-            classes_found = np.isin(classes, classes_test)
-            cm_test = cm_test[classes_found, :]
+
+            # classes_found = np.isin(classes, classes_test)
+            # cm_test = cm_test[classes_found, :]
 
             cm_test_norm = cm_test / cm_test.sum(axis=1, keepdims=1) # normalized
             probs_test.append(prob_test)
@@ -88,6 +110,7 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
     cm_df_val = pd.DataFrame(data = cms_avg_val)
 
     ## Plot confusion matrix, average over the folds
+    # TODO: move confusion matrix plotting into separate function
     g_val = sns.heatmap(cm_df_val, annot=True,
         xticklabels=classes, yticklabels=classes, cmap='Blues')
     g_val.set_yticklabels(g_val.get_yticklabels(), rotation = 0)
@@ -130,7 +153,9 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path, X_test=No
 
     return val_dict, test_dict
 
-def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=None, Y_test=None):
+def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class,
+    standard_scale=False, seed=None,
+    X_test=None, Y_test=None):
     """binary classification with k-fold cross validation and ROC analysis.
 
     Args:
@@ -142,6 +167,8 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=Non
         kernel ("linear", "poly", "rbf"): type of kernel for svm
         k_splits: number of splits for cross validation
         pos_class: string name for positive class
+        standard_scale (bool): whether or not to apply feature scaling
+        seed (int): random seed for setting the random state of the classifer
         X_test: independent test dataset (n x m). Includes samples that are
             excluded from training and only for testing.
         Y_test: true labels (n x j). Includes labels for samples/classes that
@@ -163,11 +190,11 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=Non
 
     if class_type == "svm": # support vector machine with kernel
         classifier = svm.SVC(kernel=kernel, probability=True,
-            random_state=0)
+            random_state=seed)
     elif class_type == "rf": # random forest classifier
-        classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=0)
+        classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=seed)
     elif class_type == "lr": # logistic regression with L2 loss
-        classifier = linear_model.LogisticRegression(random_state=0)
+        classifier = linear_model.LogisticRegression(random_state=seed)
 
     # prediction outputs
     probs_val = []
@@ -188,6 +215,12 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=Non
         X_val = X[val]
         Y_val = Y[val]
 
+        # feature scaling for standardization. compute scaler on training set.
+        if standard_scale:
+            scaler = get_scaler(X_train)
+            X_train = scaler.transform(X_train)
+            X_val = scaler.transform(X_val)
+
         # fit the model
         classifier.fit(X_train, Y_train)
         classes = classifier.classes_.tolist()
@@ -203,6 +236,10 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class, X_test=Non
 
         # if independent test set provided
         if (X_test is not None) and (Y_test is not None):
+
+            if standard_scale:
+                X_test = scaler.transform(X_test)
+
             # predict on test set and return ROC metrics
             prob_test, score_test, preds_test, interp_tpr_test, auc_test = \
                 classify(classifier, X_test, Y_test, pos_class)
@@ -247,7 +284,8 @@ def classify(classifier, X, Y, pos_class):
 
     return prob, score, preds, interp_tpr, auc
 
-def recursive_feature_elimination(X, Y, class_type, kernel, k_splits, out_path, save_name):
+def recursive_feature_elimination(X, Y, class_type, kernel, k_splits, out_path, save_name,
+    standard_scale=False):
     """Recursive feature elimination. Tunes the number of features selected
             using k-fold cross validation.
 
@@ -259,7 +297,9 @@ def recursive_feature_elimination(X, Y, class_type, kernel, k_splits, out_path, 
         class_type ("svm", "rf", "lr"): type of classifier
         kernel ("linear", "poly", "rbf"): type of kernel for svm
         k_splits: number of splits for cross validation
-        save_path: path to save file
+        out_path: path to save file
+        save_name (str): string token for file saving
+        standard_scale (bool): whether to employ feature standardization
 
     Returns:
 
@@ -277,6 +317,11 @@ def recursive_feature_elimination(X, Y, class_type, kernel, k_splits, out_path, 
     # use accuracy, which is reflective of number of correct classifications
     rfe_cv = feature_selection.RFECV(estimator=classifier, step=1, \
         cv=cross_val, scoring='accuracy')
+
+    if standard_scale:
+        # applies a blanket scaler to all data...
+        scaler = get_scaler(X)
+        X = scaler.transform(X)
 
     rfe_cv.fit(X, Y)
     # print("Optimal number of features : %d" % rfe_cv.n_features_)

@@ -15,26 +15,30 @@ def load_urine_data(args):
     plex, renamed = paa.data.get_plex(args.plex_path)
 
     # process the data and do normalizations
-    mean_scaled, z_scored = paa.data.process_syneos_data(syneos_data, plex,
+    filtered_data = paa.data.process_syneos_data(syneos_data, plex,
         args.stock, args.type_filter, args.ID_filter, args.ID_exclude, args.save_name)
+    mean_scaled = paa.data.mean_scale(filtered_data, args.save_name)
+    z_scored = paa.data.standard_score(filtered_data, args.save_name)
+
     mean_scaled.columns = renamed
-    z_scored.columns = renamed
+    z_scored.columns = renamed # NOTE: this will result in feature-standardization
 
     # save data in pickle file
     pkl_name = args.pkl_name
     if pkl_name is not None:
         pkl_name_mean = pkl_name + "_mean_" ".pkl"
         pkl_name_z = pkl_name + "_zscore_" ".pkl"
+        filtered_data.to_pickle(os.path.join(data_dir, pkl_name))
         mean_scaled.to_pickle(os.path.join(data_dir, pkl_name_mean))
         z_scored.to_pickle(os.path.join(data_dir, pkl_name_z))
 
-    return mean_scaled, z_scored, plex, renamed, pkl_name_mean, pkl_name_z
+    return mean_scaled, z_scored, plex, renamed, pkl_name, pkl_name_mean, pkl_name_z
 
 if __name__ == '__main__':
     args = paa.parsing.parse_ms_args()
     out_dir = get_output_dir()
 
-    mean_scaled, z_scored, plex, renamed, _, _ = load_urine_data(args)
+    mean_scaled, z_scored, plex, renamed, _, _, _ = load_urine_data(args)
 
     """ volcano plot """
     if args.volcano:

@@ -4,6 +4,7 @@ import pandas as pd
 import itertools
 import os
 import scipy.stats as stats
+from sklearn.preprocessing import StandardScaler
 
 from utils import get_output_dir
 
@@ -69,10 +70,12 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
         sample_type_to_use (list, str): sample types to use
         sample_ID_to_use (str): contains (sub)string indicator of samples to
             include, e.g. "2B" or "2hr" to denote 2hr samples. default=None
-        sample_ID_to_use (list, str): specific sample IDs to exclude
+        sample_ID_to_exclude (list, str): specific sample IDs to exclude
+        save_name (str): string token for saving files
 
     Returns:
-        norm_data_matrix (pandas.df)
+        filtered_data_matrix (pandas.df): processed and filtered matrix of
+            syneos MS data
     """
 
     def eliminate_zero_row(row):
@@ -133,18 +136,62 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
     out_dir = get_output_dir()
     filtered_matrix.to_csv(os.path.join(out_dir, f"{save_name}_filtered_matrix.csv"))
 
+    return filtered_matrix
+
+def mean_scale_matrix(data_matrix, save_name):
+    """ Perform per-sample mean scaling on a data matrix.
+
+    Args:
+        data_matrix (pandas df): processed syneos data matrix
+        save_name (str): string token for saving file
+    Returns:
+        mean_scaled (pandas df): per-sample mean scaled data
+    Writes:
+        CSV file containing the mean scaled data matrix
+    """
+
     # mean scaling
-    mean_scaled = filtered_matrix.div(filtered_matrix.mean(axis=1),axis=0)
+    mean_scaled = data_matrix.div(data_matrix.mean(axis=1),axis=0)
     out_dir = get_output_dir()
     mean_scaled.to_csv(os.path.join(out_dir, f"{save_name}_mean_scaled.csv"))
 
+    return mean_scaled
+
+def standard_scale_matrix(data_matrix, save_name, axis=0):
+    """ Perform z-scoring on a data matrix according to the specified axis.
+    Defaults to z-scoring such that values for individual features are zero mean
+    and standard deviation of 1, i.e., feature scaling with axis=0.
+
+    Args:
+        data_matrix (pandas df): processed syneos data matrix
+        save_name (str): string token for saving file
+        axis (int): axis for the standardization
+    Returns:
+        z_scored (pandas df): z_scored data matrix
+    Writes:
+        CSV file containing the z-scored data matrix
+    """
     # z scoring across samples
-    z_scored = pd.DataFrame(stats.zscore(filtered_matrix, axis=0))
+    z_scored = pd.DataFrame(stats.zscore(filtered_matrix, axis=axis))
     z_scored.columns = filtered_matrix.columns
     z_scored.index = filtered_matrix.index
-    z_scored.to_csv(os.path.join(out_dir, f"{save_name}_z_scored.csv"))
+    z_scored.to_csv(os.path.join(out_dir, f"{save_name}_z_scored_{axis}.csv"))
 
-    return mean_scaled, z_scored
+    return z_scored
+
+def get_scaler(batch):
+    """ Standardize features by removing the mean and scaling to unit variance.
+    Provide StandardScaler that can then be applied to other data.
+
+    Args:
+        batch (np.array): batch of data to generate the scaler with respect to,
+            N x M where N: number of samples; M: number of features
+    Returns:
+        scaler (StandardScaler): standard scaler (0 mean, 1 var) on the batch
+    """
+    scaler = StandardScaler()
+    scaler.fit((batch))
+    return scaler
 
 def make_multiclass_dataset(data_dir, file_list, classes_to_include,
     test_types=None):
@@ -178,9 +225,11 @@ def make_multiclass_dataset(data_dir, file_list, classes_to_include,
         data = pd.read_pickle(path)
         matrices.append(data)
     data = pd.concat(matrices)
-    # get Sample Type and copy for class labeling
+
+    # get Sample Type, ID and copy for class labeling
     sample_type = data.index.get_level_values('Sample Type').to_numpy()
     class_labels = np.copy(sample_type)
+    sample_id = data.index.get_level_values('Sample ID').to_numpy()
 
     # eliminate the data that is not in the classes_to_include
     class_inds = [i for i, val in enumerate(class_labels) if val in classes_to_include]
@@ -198,7 +247,7 @@ def make_multiclass_dataset(data_dir, file_list, classes_to_include,
     X_test = None
     Y_test = None
     data_test = None
-    if test_classes != None:
+    if test_types != None:
         data_test = data.copy()
         test_inds = []
         for i, val in enumerate(sample_id):
