@@ -15,5 +15,6 @@ dependencies:
   - pip:
     - plotnine
     - adjusttext
+    - xlrd
 
 prefix: /Users/avasoleimany/miniconda2/envs/paa

@@ -172,9 +172,11 @@ def standard_scale_matrix(data_matrix, save_name, axis=0):
         CSV file containing the z-scored data matrix
     """
     # z scoring across samples
-    z_scored = pd.DataFrame(stats.zscore(filtered_matrix, axis=axis))
-    z_scored.columns = filtered_matrix.columns
-    z_scored.index = filtered_matrix.index
+    z_scored = pd.DataFrame(stats.zscore(data_matrix, axis=axis))
+    z_scored.columns = data_matrix.columns
+    z_scored.index = data_matrix.index
+
+    out_dir = get_output_dir()
     z_scored.to_csv(os.path.join(out_dir, f"{save_name}_z_scored_{axis}.csv"))
 
     return z_scored
@@ -260,10 +262,11 @@ def make_multiclass_dataset(data_dir, file_list, classes_to_include,
         data_test = data_test.set_index(data_index_headers)
 
         data = data[~mask]
-        data = data.set_index(data_index_headers)
 
         X_test = data_test.to_numpy()
         Y_test = data_test.index.get_level_values('Class Labels').to_numpy()
+
+    data = data.set_index(data_index_headers)
 
     X = data.to_numpy()
     Y = data.index.get_level_values('Class Labels').to_numpy()
@@ -343,8 +346,9 @@ def make_class_dataset(data_dir, file_list, pos_classes=None, pos_class=None,
     X_test = None
     Y_test = None
     data_test = None
-    data_test = data.copy()
+
     if test_types != None:
+        data_test = data.copy()
         test_inds = []
         for i, val in enumerate(sample_id):
             has_type = [(test_type in val) for test_type in test_types]

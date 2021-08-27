@@ -152,7 +152,7 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
     ax.set_title('PCA Analysis of MS data', fontsize = 20)
     ax.tick_params(axis='both', labelsize=18)
 
-    
+
     targets = finalDf['Sample Type'].unique()
     # COLORS accounts for 10 groups; @Melodi can revise as you wish
     #COLORS = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue',
@@ -173,9 +173,9 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , ax, n_std = 2, edgecolor = color)
 
-    #COMMENT OUT IF BIPLOT IS NOT WANTED 
+    #COMMENT OUT IF BIPLOT IS NOT WANTED
     #coeff = np.transpose(pca.components_[0:2, :])
-    #n = coeff.shape[0] 
+    #n = coeff.shape[0]
     #for i in range(n):
        # plt.arrow(0, 0, coeff[i,0]*5, coeff[i,1]*5,color = 'r',alpha = 0.5)
         #plt.text(coeff[i,0]* 6, coeff[i,1] * 6, "Var"+str(i+1), color = 'g', ha = 'center', va = 'center')
@@ -262,7 +262,9 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
         texts.append(plt.text(x, y, l, size=12))
     adjust_text(texts)
 
-    ax.set_xlabel('Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')', fontname='Arial', fontsize = 20)
+    ax.set_xlabel(
+        'Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')',
+        fontname='Arial', fontsize = 20)
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 20)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
@@ -280,6 +282,35 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     plt.close()
 
     return
+
+def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
+    cmap='Blues'):
+    """ Plots confusion matrix results from multiclass classification.
+
+    Args:
+        cm_df (pandas df): dataframe containing the results of confusion matrix
+            analysis for multiclass classification
+        all_classes (np array): all classes in the dataset
+        test_classes (np array): test classes over which the prediction occurred
+        save_path (str): file path for saving the confusion matrix plot
+        cmap (str): color map to use
+    Plots:
+        confusion matrix
+    """
+    ## Plot confusion matrix, average over the folds
+    g = sns.heatmap(cm_df, annot=True,
+        xticklabels=all_classes, yticklabels=test_classes, cmap='Blues')
+    g.set_yticklabels(g.get_yticklabels(), rotation = 0)
+    g.set_xlabel('Predicted Label', fontsize=12)
+    g.set_ylabel('True Label', fontsize=12)
+    g.set_title('Confusion Matrix Performance', fontsize=14)
+
+    file_name = file_name + "_confusion.pdf"
+    fig = g.get_figure()
+    fig.savefig(os.path.join(out_path, file_name))
+    fig.clf()
+    plt.close(fig)
+
 
 def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     """Plots mean ROC curve + standard deviation boundary from k-fold cross val.
@@ -475,16 +506,3 @@ def plot_heatmap(in_path, out_path, metric='euclidean', method='average', scale=
     plt.close()
 
     return heat
-
-def render_html_figures(figs):
-    """ Render a list of figures into an html document and render it.
-
-    Args:
-        figs (list, plt.Figure): a list of matplotlib figures to # REVIEW: nder
-    """
-    raise NotImplementedError
-    # html = ""
-    # for fig in figs:
-    #     html += mpld3.fig_to_html(fig)
-    #     html += "<hr>"
-    # mpld3._server.serve(html)

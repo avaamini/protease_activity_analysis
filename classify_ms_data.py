@@ -27,6 +27,9 @@ if __name__ == '__main__':
     if args.test_files is not None:
         test_files = args.test
 
+    independent_test = (args.test_files is not None) or (args.test_types is not None)
+
+
     # Multiclass classification
     if args.multi_class is not None:
         X, Y, _, X_test, Y_test, _ = paa.data.make_multiclass_dataset(
@@ -57,15 +60,28 @@ if __name__ == '__main__':
                 file_name = args.save_name + "_" + classifier_name
                 save_name = os.path.join(out_dir, file_name)
                 # set evaluation w/ cross-validation
-                val_class_dict, test_class_dict = paa.classify.multiclass_classify(
-                    X, Y, classifier, kernel, args.num_folds, save_name,
-                    args.scale, args.seed,
-                    X_test, Y_test)
+                val_class_dict, val_df, test_class_dict, test_df = \
+                    paa.classify.multiclass_classify(
+                        X, Y, classifier, kernel, args.num_folds, save_name,
+                        args.scale, args.seed,
+                        X_test, Y_test)
+
+                classes = np.unique(Y)
+
+                # plot confusion matrix
+                save_name_val = args.save_name + "_crossval_" + classifier_name
+                paa.vis.plot_confusion_matrix(val_df, classes, classes,
+                    out_dir, save_name_val)
+
+                if independent_test:
+                    test_classes = np.unique(Y_test)
+                    save_name_test = args.save_name + "_test_" + classifier_name
+                    paa.vis.plot_confusion_matrix(test_df, classes, test_classes,
+                        out_dir, save_name_test)
 
     else: # Binary classification with k fold cross validation
         # If args.test_classes = None, X_test, Y_test are None; assumes no
         #   independent sample type filters are provided
-        independent_test = (args.test_files is not None) or (args.test_types is not None)
 
         X, Y, df, X_test, Y_test, df_test = paa.data.make_class_dataset(
             data_dir, files,

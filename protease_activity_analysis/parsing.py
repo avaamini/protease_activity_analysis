@@ -58,7 +58,7 @@ def add_ms_args(parser: ArgumentParser):
         help='names of sample types to hold out from training; test types')
     parser.add_argument('--scale', type=bool, default=False,
         help='whether to apply feature scaling/standardization for classification')
-    paraser.add_argument('--seed', type=int, default=None,
+    parser.add_argument('--seed', type=int, default=None,
         help='random integer to set the random state of the classifer.')
 
     ## Analysis arguments

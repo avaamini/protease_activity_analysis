@@ -41,14 +41,6 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path,
     # splits for k-fold cross validation
     cv = model_selection.StratifiedKFold(n_splits=k_splits)
 
-    if class_type == "svm": # support vector machine with kernel
-        classifier = svm.SVC(kernel=kernel, probability=True,
-            random_state=seed)
-    elif class_type == "rf": # random forest classifier
-        classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=seed)
-    elif class_type == "lr": # logistic regression with L2 loss
-        classifier = linear_model.LogisticRegression(random_state=seed)
-
     probs_val = []
     scores_val = []
     cms_val = []
@@ -60,6 +52,16 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path,
     classes = np.unique(Y)
 
     for i, (train, val) in enumerate(cv.split(X, Y)):
+
+        # Trials are completely independent wrt initialization of classifier.
+        if class_type == "svm": # support vector machine with kernel
+            classifier = svm.SVC(kernel=kernel, probability=True,
+                random_state=seed)
+        elif class_type == "rf": # random forest classifier
+            classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=seed)
+        elif class_type == "lr": # logistic regression with L2 loss
+            classifier = linear_model.LogisticRegression(random_state=seed)
+
         X_train = X[train]
         Y_train = Y[train]
         X_val = X[val]
@@ -109,49 +111,22 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path,
     cms_avg_val = np.mean(cms_val, axis=0)
     cm_df_val = pd.DataFrame(data = cms_avg_val)
 
-    ## Plot confusion matrix, average over the folds
-    # TODO: move confusion matrix plotting into separate function
-    g_val = sns.heatmap(cm_df_val, annot=True,
-        xticklabels=classes, yticklabels=classes, cmap='Blues')
-    g_val.set_yticklabels(g_val.get_yticklabels(), rotation = 0)
-    g_val.set_xlabel('Predicted Label', fontsize=12)
-    g_val.set_ylabel('True Label', fontsize=12)
-    g_val.set_title('Validation Set Performance', fontsize=14)
-
-    file_val = save_path + "_val_confusion.pdf"
-    fig_val = g_val.get_figure()
-    fig_val.savefig(file_val)
-    fig_val.clf()
-    plt.close(fig_val)
-
     if (X_test is not None) and (Y_test is not None):
         cms_test = np.asarray(cms_test)
         cms_avg_test = np.mean(cms_test, axis=0)
         cm_df_test = pd.DataFrame(data = cms_avg_test)
         test_classes = np.unique(Y_test)
-        ## Plot confusion matrix, average over the folds
-        g_test = sns.heatmap(cm_df_test, annot=True,
-            xticklabels=classes, yticklabels=test_classes, cmap='Blues')
-        g_test.set_yticklabels(g_test.get_yticklabels(), rotation = 0)
-        g_test.set_xlabel('Predicted Label', fontsize=12)
-        g_test.set_ylabel('True Label', fontsize=12)
-        g_test.set_title('Test Set Performance', fontsize=14)
-
-        file_test = save_path + "_test_confusion.pdf"
-        fig_test = g_test.get_figure()
-        fig_test.savefig(file_test)
-        fig_test.clf()
-        plt.close(fig_test)
 
     ## TODO: could possibly change this to a data frame
     val_dict = {"probs": probs_val, "scores": scores_val, "cms": cms_val}
 
     if (X_test is None) and (Y_test is None):
         test_dict = None
+        cm_df_test = None
     else:
         test_dict = {"probs": probs_test, "scores": scores_test, "cms": cms_test}
 
-    return val_dict, test_dict
+    return val_dict, cm_df_val, test_dict, cm_df_test
 
 def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class,
     standard_scale=False, seed=None,
@@ -188,14 +163,6 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class,
     # splits for k-fold cross validation
     cv = model_selection.StratifiedKFold(n_splits=k_splits)
 
-    if class_type == "svm": # support vector machine with kernel
-        classifier = svm.SVC(kernel=kernel, probability=True,
-            random_state=seed)
-    elif class_type == "rf": # random forest classifier
-        classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=seed)
-    elif class_type == "lr": # logistic regression with L2 loss
-        classifier = linear_model.LogisticRegression(random_state=seed)
-
     # prediction outputs
     probs_val = []
     scores_val = []
@@ -210,6 +177,16 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class,
 
     # Training and evaluation
     for i, (train, val) in enumerate(cv.split(X, Y)):
+
+        # Trials are completely independent wrt initialization of classifier.
+        if class_type == "svm": # support vector machine with kernel
+            classifier = svm.SVC(kernel=kernel, probability=True,
+                random_state=seed)
+        elif class_type == "rf": # random forest classifier
+            classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=seed)
+        elif class_type == "lr": # logistic regression with L2 loss
+            classifier = linear_model.LogisticRegression(random_state=seed)
+
         X_train = X[train]
         Y_train = Y[train]
         X_val = X[val]
