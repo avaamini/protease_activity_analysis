@@ -4,12 +4,30 @@ import argparse
 
 from utils import get_data_dir, get_output_dir
 
-args = paa.parsing.parse_kinetic_args()
-data_dir = get_data_dir()
-out_dir = get_output_dir()
+# screen_path = os.path.join(data_dir, args.data_path)
+# python analyze_kinetic.py --in_path='revitope/Final/MCA_AEBSF.xlsx' --fc_time=30 --linear_time=30
 
-screen_path = os.path.join(data_dir, args.data_path)
+if __name__ == '__main__':
+    data_dir = get_data_dir()
+    out_dir = get_output_dir()
 
-[fc, fc_x, z_score_fc, init_rate, z_score_rate] = paa.vis.kinetic_analysis(
-    in_path=screen_path, out_path=out_dir, fc_time=args.fc_time,
-    linear_time=args.linear_time)
+    args = paa.parsing.parse_kinetic_args()
+
+    data = paa.kinetic.KineticDataset(
+        args.data_path,
+        args.fc_time,
+        args.linear_time,
+        out_dir
+    )
+
+    data.plot_kinetic(
+        kinetic_data = data.fc,
+        title = data.sample_name,
+        ylabel = 'FoldChange'
+    )
+
+    data.plot_kinetic(
+        kinetic_data = data.raw,
+        title = data.sample_name,
+        ylabel = 'RawIntensity'
+    )

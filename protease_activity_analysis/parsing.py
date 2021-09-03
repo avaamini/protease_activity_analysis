@@ -104,11 +104,9 @@ def add_kinetic_args(parser: ArgumentParser):
 
     parser.add_argument('--data_path', type=str, default=None,
         help='path to load data from')
-    parser.add_argument('--out_path', type=str, default=get_output_dir(),
-        help='path to save data')
     parser.add_argument('--fc_time', type=int, default=30,
         help='time in min at which to take the fold change')
-    parser.add_argument('--linear_time', type=int, default=30
+    parser.add_argument('--linear_time', type=int, default=30,
         help='time in min to take initial speed')
 
 def parse_kinetic_args() -> Namespace:

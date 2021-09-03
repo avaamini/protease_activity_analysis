@@ -84,7 +84,7 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
     return ax.add_patch(ellipse)
 
 def plot_pca(data_matrix, features, group_key, pca_groups, biplot,
-    out_path, file_name, palette=COLORS):
+    out_path, file_name, palette=COLORS_EIGHT):
     """ Principal component analysis. Plot PC1 vs PC2.
 
     Args:
