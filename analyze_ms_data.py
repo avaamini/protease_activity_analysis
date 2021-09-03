@@ -7,6 +7,7 @@ from utils import get_data_dir, get_output_dir
 ## TODO: change this function so that it does not take all arguments
 def load_urine_data(args):
     data_dir = get_data_dir()
+    out_dir = get_output_dir()
 
     # read syneos file
     syneos_data = paa.data.load_syneos(args.data_path, args.type_path, args.stock_path, args.sheets)
@@ -20,9 +21,9 @@ def load_urine_data(args):
 
     # process the data and do normalizations
     filtered_data = paa.data.process_syneos_data(syneos_data, features,
-        args.stock, args.type_filter, args.ID_filter, args.ID_exclude, args.save_name)
-    mean_scaled = paa.data.mean_scale_matrix(filtered_data, args.save_name)
-    z_scored = paa.data.standard_scale_matrix(filtered_data, args.save_name)
+        args.stock, out_dir, args.type_filter, args.ID_filter, args.ID_exclude, args.save_name)
+    mean_scaled = paa.data.mean_scale_matrix(filtered_data, out_dir, args.save_name)
+    z_scored = paa.data.standard_scale_matrix(filtered_data, out_dir, args.save_name)
 
     mean_scaled.columns = renamed
     z_scored.columns = renamed # NOTE: this will result in feature-standardization

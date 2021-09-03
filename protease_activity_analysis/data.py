@@ -59,7 +59,7 @@ def load_syneos(data_path, id_path, stock_path, sheet_names):
 
     return data_matrix
 
-def process_syneos_data(data_matrix, features_to_use, stock_id,
+def process_syneos_data(data_matrix, features_to_use, stock_id, out_dir,
     sample_type_to_use=None, sample_ID_to_use=None, sample_ID_to_exclude=None, save_name=None):
     """ Process syneos data. Keep relevant features and mean-normalize
 
@@ -133,16 +133,16 @@ def process_syneos_data(data_matrix, features_to_use, stock_id,
         filtered_matrix = undo_multi[~undo_multi['Sample ID'].isin(sample_ID_to_exclude)]
         filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
 
-    out_dir = get_output_dir()
     filtered_matrix.to_csv(os.path.join(out_dir, f"{save_name}_filtered_matrix.csv"))
 
     return filtered_matrix
 
-def mean_scale_matrix(data_matrix, save_name):
+def mean_scale_matrix(data_matrix, out_dir, save_name):
     """ Perform per-sample mean scaling on a data matrix.
 
     Args:
         data_matrix (pandas df): processed syneos data matrix
+        out_dir (str): directory for saving outputs
         save_name (str): string token for saving file
     Returns:
         mean_scaled (pandas df): per-sample mean scaled data
@@ -152,12 +152,11 @@ def mean_scale_matrix(data_matrix, save_name):
 
     # mean scaling
     mean_scaled = data_matrix.div(data_matrix.mean(axis=1),axis=0)
-    out_dir = get_output_dir()
     mean_scaled.to_csv(os.path.join(out_dir, f"{save_name}_mean_scaled.csv"))
 
     return mean_scaled
 
-def standard_scale_matrix(data_matrix, save_name, axis=0):
+def standard_scale_matrix(data_matrix, out_dir, save_name, axis=0):
     """ Perform z-scoring on a data matrix according to the specified axis.
     Defaults to z-scoring such that values for individual features are zero mean
     and standard deviation of 1, i.e., feature scaling with axis=0.
@@ -176,7 +175,6 @@ def standard_scale_matrix(data_matrix, save_name, axis=0):
     z_scored.columns = data_matrix.columns
     z_scored.index = data_matrix.index
 
-    out_dir = get_output_dir()
     z_scored.to_csv(os.path.join(out_dir, f"{save_name}_z_scored_{axis}.csv"))
 
     return z_scored
