@@ -47,9 +47,10 @@ if __name__ == '__main__':
 
     """ volcano plot """
     if args.volcano:
-        paa.vis.plot_volcano(mean_scaled, args.group1, args.group2, renamed, out_dir,
-            args.save_name)
+        paa.vis.plot_volcano(mean_scaled, args.group_key, args.group1, args.group2,
+            renamed, out_dir, args.save_name)
 
     """ PCA """
     if args.pca:
-        paa.vis.plot_pca(mean_scaled, renamed, args.pca_groups, out_dir, args.save_name)
+        paa.vis.plot_pca(mean_scaled, renamed, args.group_key, args.pca_groups,
+            args.biplot, out_dir, args.save_name)

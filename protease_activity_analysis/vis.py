@@ -20,29 +20,34 @@ from adjustText import adjust_text
 matplotlib.rcParams['font.sans-serif'] = "Arial"
 # Then, "ALWAYS use sans-serif fonts"
 matplotlib.rcParams['font.family'] = "sans-serif"
+# Sample color palette
+COLORS_EIGHT = [
+    'k',
+    'deepskyblue',
+    'lightseagreen',
+    'orangered',
+    'coral',
+    'dodgerblue',
+    'indigo',
+    'darkslategray'
+]
+
 
 def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
     """
     Create a plot of the covariance confidence ellipse of *x* and *y*.
 
-    Parameters
-    ----------
-    x, y : array-like, shape (n, )
-        Input data.
+    Args:
+        x, y (array-like, shape (n, )): input data
+        ax (matplotlib.axes.Axes): The axes object to draw the ellipse into
+        n_std (float): The number of standard deviations to determine the
+            ellipse's radiuses.
 
-    ax : matplotlib.axes.Axes
-        The axes object to draw the ellipse into.
+    Returns:
+        matplotlib.patches.Ellipse
 
-    n_std : float
-        The number of standard deviations to determine the ellipse's radiuses.
-
-    Returns
-    -------
-    matplotlib.patches.Ellipse
-
-    Other parameters
-    ----------------
-    kwargs : `~matplotlib.patches.Patch` properties
+    Other parameters:
+        kwargs : `~matplotlib.patches.Patch` properties
     """
     if x.size != y.size:
         raise ValueError("x and y must be the same size")
@@ -75,46 +80,23 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
         .translate(mean_x, mean_y)
 
     ellipse.set_transform(transf + ax.transData)
+
     return ax.add_patch(ellipse)
 
-def plot_heatmap(data_matrix, reporters):
-    """ Plots and saves heat map fig
+def plot_pca(data_matrix, features, group_key, pca_groups, biplot,
+    out_path, file_name, palette=COLORS):
+    """ Principal component analysis. Plot PC1 vs PC2.
 
-    Args:
-        data_matrix: normalized data matrix
-
-    Returns:
-        heat_map (fig): heatmap of data
-    """
-    undo_multiindex = data_matrix.unstack(0)
-    undo_multiindex = undo_multiindex.stack(0)
-    undo_multiindex = undo_multiindex.stack(0)
-    undo_multiindex = undo_multiindex.reset_index()
-    undo_multiindex = undo_multiindex.rename(columns={0:"z-scores",
-        "level_1": "Reporters"})
-    undo_multiindex = undo_multiindex.astype({"z-scores":float})
-
-    # by category
-    fig = (
-    (undo_multiindex, aes('Reporters', 'Sample Type', fill = 'z-scores'))
-      + geom_tile(aes(width=0.95,  height=0.95))
-      + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
-      + coord_equal()
-      + theme(
-              axis_ticks=element_blank(),
-              axis_text_x=element_text(angle=90),
-              legend_title_align='center')
-    )
-
-    fig.draw()
-    plt.close()
-
-    return fig
-
-def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
-    """ Plots and saves principal component analysis fig
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
+        features (array-like, str): features to use for the PCA
+        group_key (str): token key name for annotating the PCA
+        pca_groups (list, str): groups to consider for the PCA
+        biplot (bool): True if want to show biplot
+        out_path (str): path to write the plot to
+        file_name (str): token key for saving the plot
+        palette: list of colors for PCA
+
     Returns:
         pca_scatter (fig): PCA scatter plot of data
     """
@@ -122,13 +104,12 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
     from sklearn.preprocessing import StandardScaler
     from sklearn.decomposition import PCA
 
-    features = reporters
     data_matrix = data_matrix.reset_index()
     if pca_groups is not None:
-        data_matrix = data_matrix[data_matrix['Sample Type'].isin(pca_groups)]
+        data_matrix = data_matrix[data_matrix[group_key].isin(pca_groups)]
 
     x = data_matrix.loc[:,features].values
-    y = data_matrix.loc[:, ['Sample Type']].values
+    y = data_matrix.loc[:, [group_key]].values
     x = StandardScaler().fit_transform(x)
 
     pca = PCA(n_components=5)
@@ -136,36 +117,30 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
     finalDf = pd.DataFrame(data = {
         'principal component 1': principalComponents[:,0],
         'principal component 2': principalComponents[:,1],
-        #'principal component 3': principalComponents[:,2],
-        'Sample Type': data_matrix['Sample Type']})
+        group_key: data_matrix[group_key]})
 
     fig = plt.figure(figsize = (8,8))
-    #ax = fig.add_subplot(projection="3d")
     ax = fig.add_subplot(1,1,1)
+
     explained_variance = pca.explained_variance_ratio_
     pc1 = explained_variance[0]*100
     pc2 = explained_variance[1]*100
-    #pc3 = explained_variance[2]*100
+
     ax.set_xlabel('PC1 ('+ "%0.1f" % (pc1) + '% explained var.)', fontsize = 20)
     ax.set_ylabel('PC2 ('+ "%0.1f" % (pc2) + '% explained var.)', fontsize = 20)
-    #ax.set_zlabel('PC3 ('+ "%0.1f" % (pc3) + '% explained var.)', fontsize = 20)
-    ax.set_title('PCA Analysis of MS data', fontsize = 20)
+
+    ax.set_title('PCA Analysis', fontsize = 20)
     ax.tick_params(axis='both', labelsize=18)
 
 
-    targets = finalDf['Sample Type'].unique()
-    # COLORS accounts for 10 groups; @Melodi can revise as you wish
-    #COLORS = ['k', 'lightseagreen', 'deepskyblue', 'steelblue', 'darkblue',
-    #    'dodgerblue', 'indigo', 'lightsalmon', 'lime', 'darkslategray']
-    #COLORS = ['darkblue','k','orange']
-    COLORS = ['k', 'deepskyblue', 'lightseagreen', 'orangered', 'coral', 'dodgerblue', 'indigo', 'darkslategray']
-    colors = COLORS[:len(targets)]
+    targets = finalDf[group_key].unique()
+
+    colors = palette[:len(targets)]
 
     for target, color in zip(targets,colors):
         indicesToKeep = finalDf['Sample Type'] == target
         ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
                    , finalDf.loc[indicesToKeep, 'principal component 2']
-                   #, finalDf.loc[indicesToKeep, 'principal component 3']
 		  , c = color
                    , s = 50
                    , label = target)
@@ -173,13 +148,13 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
                    , finalDf.loc[indicesToKeep, 'principal component 2']
                    , ax, n_std = 2, edgecolor = color)
 
-    #COMMENT OUT IF BIPLOT IS NOT WANTED
-    #coeff = np.transpose(pca.components_[0:2, :])
-    #n = coeff.shape[0]
-    #for i in range(n):
-       # plt.arrow(0, 0, coeff[i,0]*5, coeff[i,1]*5,color = 'r',alpha = 0.5)
-        #plt.text(coeff[i,0]* 6, coeff[i,1] * 6, "Var"+str(i+1), color = 'g', ha = 'center', va = 'center')
-    #
+    if biplot:
+        coeff = np.transpose(pca.components_[0:2, :])
+        n = coeff.shape[0]
+        for i in range(n):
+            plt.arrow(0, 0, coeff[i,0]*5, coeff[i,1]*5,color = 'r',alpha = 0.5)
+            plt.text(coeff[i,0]* 6, coeff[i,1] * 6, "Var"+str(i+1),
+                color = 'g', ha = 'center', va = 'center')
 
     l = ax.legend(loc='upper right', ncol=1, handlelength=0, fontsize=14,
         frameon=False)
@@ -190,21 +165,29 @@ def plot_pca(data_matrix, reporters, pca_groups, data_path, file_name):
         handle.set_color('white')
 
     file = file_name + "_PCA.pdf"
-    fig.savefig(os.path.join(data_path, file))
+    fig.savefig(os.path.join(out_path, file))
     plt.close()
 
     return
 
-def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
-    """ Plots and saves volcano plot figure
+def plot_volcano(data_matrix, group_key, group1, group2, plex, out_path, file_name):
+    """ Volcano plot for differential enrichment of features between two groups.
+
     Args:
         data_matrix (pd.pivot_table): normalized data matrix
-    Returns:
-        volcano (fig): volcano plot of data. saved
+        group_key (str): token key name for group comparison. Found in data_matrix
+        group1 (str): sample type name for the first group in the comparison
+        group2 (str): sample type name for the second group in the comparison
+        plex (list, str): names of the features for annotation on the volcano
+        out_path (str): path to write the plot to
+        file_name (str): token key for saving the plot
+
+    Plots:
+        Volcano plot of data, saved.
     """
     if group1==None and group2==None:
         targets = data_matrix.index.levels[0]
-        grouped = data_matrix.groupby(level="Sample Type")
+        grouped = data_matrix.groupby(level=group_key)
         group1 = targets[0]
         cond1 = grouped.get_group(targets[0])
         cond1_means = cond1.mean()
@@ -216,10 +199,10 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
         fold_change = cond2_means/cond1_means
     else:
         undo_multi = data_matrix.reset_index()
-        cond1 = undo_multi[undo_multi['Sample Type'].isin(group1)]
+        cond1 = undo_multi[undo_multi[group_key].isin(group1)]
         cond1_means = cond1.mean(axis=0)
 
-        cond2 = undo_multi[undo_multi['Sample Type'].isin(group2)]
+        cond2 = undo_multi[undo_multi[group_key].isin(group2)]
         cond2_means = cond2.mean(axis=0)
 
         fold_change = cond2_means/cond1_means
@@ -268,7 +251,7 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 20)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
-    ax.set_title('Volcano plot of MS data', fontsize=20)
+    ax.set_title('Volcano Plot', fontsize=20)
     ax.tick_params(axis='both', labelsize=18)
 
 
@@ -278,7 +261,7 @@ def plot_volcano(data_matrix, group1, group2, plex, data_path, file_name):
     ax.axvline(x=1, linestyle='--', color='lightgray')
 
     file = file_name + "_volcano.pdf"
-    fig.savefig(os.path.join(data_path, file))
+    fig.savefig(os.path.join(out_path, file))
     plt.close()
 
     return
@@ -311,6 +294,7 @@ def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
     fig.clf()
     plt.close(fig)
 
+    return
 
 def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     """Plots mean ROC curve + standard deviation boundary from k-fold cross val.
@@ -343,7 +327,7 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
         std_tpr = np.std(tprs, axis=0) # already interpolated
         tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
         tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
-        ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
+        ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=0.2,
                         label=r'$\pm$ 1 std. dev.')
 
     ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05],
@@ -358,149 +342,91 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
 
     return
 
-def kinetic_analysis(in_path, out_path, fc_time, linear_time, blank=0):
-    """ Analyze kinetic data based on fold change + initial rate
+def plot_matrix(data_matrix):
+    """ Visualizes protease activity data matrix as heatmap.
 
-        Args:
-            - in_path (str): path to raw data, columns = timepoints, rows = substrates, cell 0,0 = name of "protease/sample - probe name" e.g. 'MMP13-Substrate'
-            - out_path (str): path to store the results
-            - fc_time (int): time in min at which to take the fold change
-            - linear_time (int): time in min to take initial speed
-            - blank (int): 1 = blank data provided, 0 = no blank data provided [default]
+    Args:
+        data_matrix (pandas df): normalized data matrix
 
+    Returns:
+        heat_map (fig): heatmap of data
+    """
+    undo_multiindex = data_matrix.unstack(0)
+    undo_multiindex = undo_multiindex.stack(0)
+    undo_multiindex = undo_multiindex.stack(0)
+    undo_multiindex = undo_multiindex.reset_index()
+    undo_multiindex = undo_multiindex.rename(columns={0:"z-scores",
+        "level_1": "Reporters"})
+    undo_multiindex = undo_multiindex.astype({"z-scores":float})
 
-        Returns:
-            - fc (pandas.DataFrame): Fold change for all samples in fluorescence from time 0
-            - fc_x (pandas.DataFrame): Fold change at time x
-            - z_score_fc (pandas.core.series.Series): Z_score of fold change at fc_time
-            - init_rate (pandas.core.series.Series): Initial rate
-            - z_score_rate (pandas.core.series.Series): Z_score of initial rates
-        """
-    def plot_kinetic(data, title, ylabel, path):
-        # Calculate the average and the std of replicates
-        mean = data.groupby(data.columns[0]).agg([np.mean])
-        mean.columns = mean.columns.droplevel(1)
-        std = data.groupby(data.columns[0]).agg([double_std])
-        std.columns = std.columns.droplevel(1)
+    # by category
+    fig = (
+    (undo_multiindex, aes('Reporters', 'Sample Type', fill = 'z-scores'))
+      + geom_tile(aes(width=0.95,  height=0.95))
+      + scale_fill_gradient2(low='blue', mid = 'white', high='red', midpoint=1)
+      + coord_equal()
+      + theme(
+              axis_ticks=element_blank(),
+              axis_text_x=element_text(angle=90),
+              legend_title_align='center')
+    )
 
-        # Plot data
-        mean_t = mean.T
-        ax = mean_t.plot(legend=True, marker='.', markersize=10, figsize=(7, 5), yerr=std.T)
-        ax.legend(loc='upper left', prop=fm.FontProperties(family='Arial'), fontsize=8)
-        ax.set_xlabel('Time (min)', fontname='Arial', fontsize=14)
-        ax.set_ylabel(ylabel, fontname='Arial', fontsize=14)
-        ax.set_title(title, fontname='Arial', fontsize=15)
-        ax.figure.savefig(path)
-
-        plt.close()
-
-        return ax
-
-    # Calculate z score of pandas.Series or pandas.Dataframe
-    def z_score(data):
-        z_s = ((data - data.mean()) / data.std(ddof=0))
-        return z_s
-
-    def double_std(array):
-        return np.std(array) * 2
-
-    # Import kinetic data
-    raw = pd.read_excel(in_path)
-
-    # Get name of sample being screened against and probe-type being screened
-    info = str(raw.columns[0]).split('-')
-    prot = info[0]
-    # print('prot:', prot)
-    # sub = info[1]
-    # print('sub:', sub)
-
-    # Create new directory to save outputs with name of 'prot'
-    path = os.path.join(out_path, prot)
-    if not os.path.exists(path):
-        os.makedirs(path)
-        print('Directory created', path)
-
-    # Plot raw kinetic data
-    plot_kinetic(raw, prot, 'Intensity', path=str(path) + '/' + str(prot) + '_raw_kinetic_data.pdf')
-
-    # Find initial rate in intensity/min
-    raw_mean = raw.groupby(raw.columns[0]).agg([np.mean])
-    raw_mean.columns = raw_mean.columns.droplevel(1)
-    init_rate = (raw_mean[linear_time] - raw_mean[0]) / (linear_time)
-    name_str = 'Initial rate at t=' + str(linear_time)
-    init_rate = init_rate.to_frame(name=name_str)
-
-    # Calculate z_score based on init_rate
-    z_score_rate = z_score(init_rate)
-    name_str = 'Z-scored initial rate at t=' + str(linear_time)
-    # z_score_rate= z_score_rate.to_frame(name=name_str)
-
-    # Find the mean fold change for all substrates at all times
-    fc_mean = raw_mean.div(raw_mean[0], axis=0)
-
-    # Find the fold change for all substrates and replicates at all times
-    raw2 = raw.set_index(raw.columns[0])
-    fc = raw2.div(raw2[0], axis=0)
-
-    # Find the fold-change at time fc_time (x)
-    fc_x = fc_mean[fc_time]
-
-    # Calculate z_score by fold change
-    z_score_fc = z_score(fc_x)
-    name_str = 'Z-scored fold change at t=' + str(fc_time)
-    z_score_fc = z_score_fc.to_frame(name=name_str)
-
-    # Plot fc kinetic data
-    data = fc.reset_index()
-    plot_kinetic(data, prot, 'Fold change', path=str(path) + '/' + str(prot) + '_fc_kinetic_data.pdf')
-
-    fc.to_csv(str(path) + '/' + str(prot) + '_fc.csv')
-    fc_x.to_csv(str(path) + '/' + str(prot) + '_fc_x.csv')
-    z_score_fc.to_csv(str(path) + '/' + str(prot) + '_z_score_fc.csv')
-    init_rate.to_csv(str(path) + '/' + str(prot) + '_init_rate.csv')
-    z_score_rate.to_csv(str(path) + '/' + str(prot) + '_z_score_rate.csv')
-
+    fig.draw()
     plt.close()
 
-    return fc, fc_x, z_score_fc, init_rate, z_score_rate
+    return fig
 
-def plot_heatmap(in_path, out_path, metric='euclidean', method='average', scale='log2'):
-    """ Plot heatmap of data
+def plot_heatmap(data_matrix, out_path, sample_label, row_colors,
+    metric='euclidean', method='average', scale='log2'):
+    """ Plot heatmap of protease activity data, with hierarchical clustering.
 
-            Args:
-                - in_path (str): path to raw data
-                - out_path (str): path to store the results
-                - metric (str): Distance metric to use for the data, See scipy.cluster.hierarchy.linkage documentation
-                - method (str): Linkage method to use for calculating clusters, See scipy.spatial.distance.pdist documentatio
-                - scale (str): scaling to be performed: 'None', 'log2'
+    Args:
+        data_matrix (pandas df): data to visualize using the heatmap
+        out_path (str): path to store the results
+        sample_label (str): type of annotation for the samples
+            e.g., 'Family'
+        row_colors (list, str): colors for labeling the samples in the heatmap,
+            e.g., []'g', 'royalblue', 'orange', 'orange', 'orange', 'orange',
+            'g', 'g', 'g', 'g', 'g', 'orange', 'royalblue', 'orange', 'orange']
+        metric (str): Distance metric to use for the data,
+            See scipy.cluster.hierarchy.linkage documentation
+        method (str): Linkage method to use for calculating clusters,
+            See scipy.spatial.distance.pdist documentatio
+        scale (str): scaling to be performed: 'None', 'log2'
 
-
-            Returns:
-                - scaled_data (pandas.DataFrame): scaled data
-
-            TODO:
-            1. Add color map in the matrix as the last row
-            2. Decide on a universal color scheme + add argument for center
+    Returns:
+        heat (pandas.DataFrame): data matrix for the heatmap.
 
     """
+    # TODO:
+    # 1. Add color map in the matrix as the last row
+    # 2. Decide on a universal color scheme + add argument for center
 
     # Import data
-    heat = pd.read_excel(in_path, index_col=0)
+    heat = data_matrix
 
     # Scale data
     if scale == 'log2':
         heat = np.log2(heat)
 
     # Define color labels
-    row_colors = pd.DataFrame({'Family': ['g', 'royalblue', 'orange', 'orange', 'orange', 'orange', 'g', 'g', 'g', 'g',
-                                          'g', 'orange', 'royalblue', 'orange', 'orange']}, index=heat.index)
+    row_labels = pd.DataFrame({sample_label: row_colors}, index=heat.index)
     # Plot heatmap
     sns.set(font_scale=1.5)
 
     cmap = sns.diverging_palette(h_neg=240, h_pos=20, sep=15, s=99, l=50, as_cmap=True)
-    fig = sns.clustermap(heat, cmap=cmap, center=0.1, linewidth=2, linecolor='white', dendrogram_ratio=(.15, .15),
-                         figsize=(8, 8), cbar_pos=(0, 0.12, .03, .4), method=method, row_colors=row_colors,
-                         metric=metric)
+    fig = sns.clustermap(heat,
+                        cmap=cmap,
+                        center=0.1,
+                        linewidth=2,
+                        linecolor='white',
+                        dendrogram_ratio=(.15, .15),
+                        figsize=(8, 8),
+                        cbar_pos=(0, 0.12, .03, .4),
+                        method=method,
+                        row_colors=row_labels,
+                        metric=metric
+                    )
 
     fig.savefig(out_path)
     plt.close()

@@ -35,21 +35,25 @@ def add_ms_args(parser: ArgumentParser):
         help='nomenclature filter for sample ID to use (keep)')
     parser.add_argument('--features_filter', type=str, nargs="*", default=None,
         help='names of features to include in analysis')
-    parser.add_argument('--ID_exclude', default=None, type=str, nargs='*',
+    parser.add_argument('--ID_exclude', type=str, nargs='*', default=None,
         help='IDs for samples to exclude from the output matrix')
 
     # Volcano/PCA filtering
-    parser.add_argument('--group1', default=None, type=str, nargs='*',
+    parser.add_argument('--group1', type=str, nargs='*', default=None,
         help='first set of sample types for significance comparison in volcano')
-    parser.add_argument('--group2', default=None, type=str, nargs='*',
+    parser.add_argument('--group2', type=str, nargs='*', default=None,
         help='second set of sample types for significance comparison in volcano')
-    parser.add_argument('--pca_groups', default=None, type=str, nargs='*',
+    parser.add_argument('--pca_groups', type=str, nargs='*', default=None,
         help='specify sample types for consideration in PCA')
+    parser.add_argument('--group_key', type=str, default='Sample Type',
+        help='sample annotation by which to annotate the PCA, i.e., sample type')
+    parser.add_argument('--biplot', type=bool, default=False,
+        help='True if a biplot annotation on PCA is desired')
 
     # Classification arguments
-    parser.add_argument('--multi_class', type=str, default=None, nargs='*',
+    parser.add_argument('--multi_class', type=str, nargs='*', default=None,
         help='names of classes for multi class classification')
-    parser.add_argument('--pos_classes', type=str, default=None, nargs="*",
+    parser.add_argument('--pos_classes', type=str, nargs="*", default=None,
         help='names of positive classes')
     parser.add_argument('--pos_class', type=str, default=None,
         help='name of positive class for re-labling')
@@ -75,7 +79,7 @@ def add_ms_args(parser: ArgumentParser):
         help='type of classifier: svm, random forest, logistic regression')
     parser.add_argument('--kernel', type=str, nargs="*", default=['linear'],
         help='type of kernel for svm: linear, rbf, poly')
-    parser.add_argument('--num_folds', type=int, default=5,
+    parser.add_argument('--num_folds', type=int, default=10,
         help='number of folds for cross validation')
 
     ## Save arguments
@@ -100,7 +104,7 @@ def add_kinetic_args(parser: ArgumentParser):
 
     parser.add_argument('--data_path', type=str, default=None,
         help='path to load data from')
-    parser.add_argument('--out_path', default=get_output_dir(),
+    parser.add_argument('--out_path', type=str, default=get_output_dir(),
         help='path to save data')
     parser.add_argument('--fc_time', type=int, default=30,
         help='time in min at which to take the fold change')
