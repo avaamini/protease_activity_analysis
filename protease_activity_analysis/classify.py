@@ -8,24 +8,16 @@ import os
 from sklearn import svm, model_selection, metrics, ensemble, linear_model, feature_selection
 from .data import get_scaler
 
-# Set default font to Arial
-# Say, "the default sans-serif font is Arial
-matplotlib.rcParams['font.sans-serif'] = "Arial"
-# Then, "ALWAYS use sans-serif fonts"
-matplotlib.rcParams['font.family'] = "sans-serif"
-
-def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path,
-    standard_scale=False, seed=None,
-    X_test=None, Y_test=None):
+def multiclass_classify(X, Y, model_type, kernel, k_splits, save_path,
+    standard_scale=False, seed=None, X_test=None, Y_test=None):
     """Perform multiclass sample classification with k-fold cross validation.
-    Plots confusion matrix heatmap.
 
     Args:
         X: full dataset (n x m) where n is the number of samples and m is the
             number of features. Includes samples for both train/val.
         Y: true labels (n x j), where n is the number of samples and j is the
             number of classes. Includes labels for both train/val.
-        class_type ("svm", "rf", "lr"): type of classifier
+        model_type ("svm", "rf", "lr"): type of classifier
         kernel ("linear", "poly", "rbf"): type of kernel for svm
         k_splits: number of splits for cross validation
         save_path: path to save
@@ -36,7 +28,14 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path,
         Y_test: true labels (n x j). Includes labels for samples/classes that
             are excluded from training and only used for testing.
 
-    Returns:
+    Returns: val_dict, cm_df_val, test_dict, cm_df_test
+        val_dict: dictionary of performance metrics for classifier evaluated on
+            validation set
+        cm_df_val (pandas df): confusion matrix statistics for validation set
+        test_dict: dictionary of performance metrics for classifier evaluated on
+            test set
+        cm_df_test (pandas df): confusion matrix statistics for test set
+
     """
     # splits for k-fold cross validation
     cv = model_selection.StratifiedKFold(n_splits=k_splits)
@@ -54,12 +53,13 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path,
     for i, (train, val) in enumerate(cv.split(X, Y)):
 
         # Trials are completely independent wrt initialization of classifier.
-        if class_type == "svm": # support vector machine with kernel
+        if model_type == "svm": # support vector machine with kernel
             classifier = svm.SVC(kernel=kernel, probability=True,
                 random_state=seed)
-        elif class_type == "rf": # random forest classifier
-            classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=seed)
-        elif class_type == "lr": # logistic regression with L2 loss
+        elif model_type == "rf": # random forest classifier
+            classifier = ensemble.RandomForestClassifier(
+                max_depth=2, random_state=seed)
+        elif model_type == "lr": # logistic regression with L2 loss
             classifier = linear_model.LogisticRegression(random_state=seed)
 
         X_train = X[train]
@@ -128,17 +128,16 @@ def multiclass_classify(X, Y, class_type, kernel, k_splits, save_path,
 
     return val_dict, cm_df_val, test_dict, cm_df_test
 
-def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class,
-    standard_scale=False, seed=None,
-    X_test=None, Y_test=None):
-    """binary classification with k-fold cross validation and ROC analysis.
+def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
+    standard_scale=False, seed=None, X_test=None, Y_test=None):
+    """Binary classification with k-fold cross validation and ROC analysis.
 
     Args:
         X: full dataset (n x m) where n is the number of samples and m is the
             number of features. Includes samples for both train/val.
         Y: true labels (n x j), where n is the number of samples and j is the
             number of classes. Includes labels for both train/val.
-        class_type ("svm", "rf", "lr"): type of classifier
+        model_type ("svm", "rf", "lr"): type of classifier
         kernel ("linear", "poly", "rbf"): type of kernel for svm
         k_splits: number of splits for cross validation
         pos_class: string name for positive class
@@ -179,12 +178,13 @@ def classify_kfold_roc(X, Y, class_type, kernel, k_splits, pos_class,
     for i, (train, val) in enumerate(cv.split(X, Y)):
 
         # Trials are completely independent wrt initialization of classifier.
-        if class_type == "svm": # support vector machine with kernel
+        if model_type == "svm": # support vector machine with kernel
             classifier = svm.SVC(kernel=kernel, probability=True,
                 random_state=seed)
-        elif class_type == "rf": # random forest classifier
-            classifier = ensemble.RandomForestClassifier(max_depth=2, random_state=seed)
-        elif class_type == "lr": # logistic regression with L2 loss
+        elif model_type == "rf": # random forest classifier
+            classifier = ensemble.RandomForestClassifier(
+                max_depth=2, random_state=seed)
+        elif model_type == "lr": # logistic regression with L2 loss
             classifier = linear_model.LogisticRegression(random_state=seed)
 
         X_train = X[train]
@@ -261,7 +261,9 @@ def classify(classifier, X, Y, pos_class):
 
     return prob, score, preds, interp_tpr, auc
 
-def recursive_feature_elimination(X, Y, class_type, kernel, k_splits, out_path, save_name,
+
+## TODO: fix this
+def rfe_analysis(X, Y, class_type, kernel, k_splits, out_path, save_name,
     standard_scale=False):
     """Recursive feature elimination. Tunes the number of features selected
             using k-fold cross validation.

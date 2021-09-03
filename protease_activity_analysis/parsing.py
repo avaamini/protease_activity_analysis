@@ -1,7 +1,8 @@
+""" Argument parsing for interfacing with command line. """
 from argparse import ArgumentParser, Namespace
 
 def add_ms_args(parser: ArgumentParser):
-    """ Add arguments for ms data analysis.
+    """ Add arguments for MS data analysis.
 
     Args:
         parser: An ArgumentParser.
@@ -12,9 +13,9 @@ def add_ms_args(parser: ArgumentParser):
         help='names of pickle files for analysis/training the classifier')
     parser.add_argument('--test_files', type=str, nargs="*", default=None,
         help='names of pickle files to specify independent test data')
-    parser.add_argument('--data_path', default=None,
+    parser.add_argument('--data_path', type=str, default=None,
         help='path to load data from')
-    parser.add_argument('--type_path', default=None,
+    parser.add_argument('--type_path', type=str, default=None,
         help='path to load Sample Types from')
     parser.add_argument('--plex_path', type=str, default=None,
         help='file that contains reporter/plex nomenclature')
@@ -29,9 +30,11 @@ def add_ms_args(parser: ArgumentParser):
     ## Filter, group, and label arguments
     ## Data filtering
     parser.add_argument('--type_filter', type=str, nargs="*", default=None,
-        help='nomenclature filter for sample type to use')
+        help='nomenclature filter for sample type to use (keep)')
     parser.add_argument('--ID_filter', type=str, default=None,
-        help='nomenclature filter for sample ID to use')
+        help='nomenclature filter for sample ID to use (keep)')
+    parser.add_argument('--features_filter', type=str, nargs="*", default=None,
+        help='names of features to include in analysis')
     parser.add_argument('--ID_exclude', default=None, type=str, nargs='*',
         help='IDs for samples to exclude from the output matrix')
 
@@ -85,5 +88,28 @@ def parse_ms_args() -> Namespace:
     """ Parse MS data analysis arguments."""
     parser = ArgumentParser()
     add_ms_args(parser)
+    args = parser.parse_args()
+    return args
+
+def add_kinetic_args(parser: ArgumentParser):
+    """ Add arguments for kinetic data analysis.
+
+    Args:
+        parse: ArgumentParser
+    """
+
+    parser.add_argument('--data_path', type=str, default=None,
+        help='path to load data from')
+    parser.add_argument('--out_path', default=get_output_dir(),
+        help='path to save data')
+    parser.add_argument('--fc_time', type=int, default=30,
+        help='time in min at which to take the fold change')
+    parser.add_argument('--linear_time', type=int, default=30
+        help='time in min to take initial speed')
+
+def parse_kinetic_args() -> Namespace:
+    """ Parse kinetic data analysis arguments."""
+    parser = ArgumentParser()
+    add_kinetic_args(parser)
     args = parser.parse_args()
     return args

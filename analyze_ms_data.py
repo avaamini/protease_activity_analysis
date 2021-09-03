@@ -12,10 +12,14 @@ def load_urine_data(args):
     syneos_data = paa.data.load_syneos(args.data_path, args.type_path, args.stock_path, args.sheets)
 
     # read plex/reporter file
-    plex, renamed = paa.data.get_plex(args.plex_path)
+    features, renamed = paa.data.get_plex(args.plex_path)
+
+    # if only want to use a subset of the features to construct the data matrix
+    if args.features_to_use != None:
+        features = args.features_to_use
 
     # process the data and do normalizations
-    filtered_data = paa.data.process_syneos_data(syneos_data, plex,
+    filtered_data = paa.data.process_syneos_data(syneos_data, features,
         args.stock, args.type_filter, args.ID_filter, args.ID_exclude, args.save_name)
     mean_scaled = paa.data.mean_scale_matrix(filtered_data, args.save_name)
     z_scored = paa.data.standard_scale_matrix(filtered_data, args.save_name)
