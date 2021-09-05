@@ -9,10 +9,6 @@ import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 
-from matplotlib.patches import Ellipse
-from sklearn import svm, model_selection, metrics, ensemble
-from plotnine import ggplot, geom_tile, aes, scale_fill_gradient2, coord_equal, \
-    themes
 from adjustText import adjust_text
 
 class KineticDataset:

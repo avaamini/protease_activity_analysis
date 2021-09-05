@@ -52,7 +52,8 @@ def load_syneos(data_path, id_path, stock_path, sheet_names):
     df.loc[replace_inds,'Ratio'] = df.loc[replace_inds,'Area Ratio']
 
     # create data_matrix n x m where m is the number of reporters
-    data_matrix = pd.pivot_table(df,
+    data_matrix = pd.pivot_table(
+        df,
         values='Ratio',
         index=indices,
         columns='Compound')

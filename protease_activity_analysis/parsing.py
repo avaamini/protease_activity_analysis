@@ -115,3 +115,20 @@ def parse_kinetic_args() -> Namespace:
     add_kinetic_args(parser)
     args = parser.parse_args()
     return args
+
+def add_database_args(parser: ArgumentParser):
+    """ Add arguments for constructing the substrate database.
+
+    Args:
+        parser: ArgumentParser
+
+    """
+    parser.add_argument('--file_list', type=str, nargs="*", default=None,
+        help='list of screen files to load into the database')
+
+def parse_database_args() -> Namespace:
+    """ Parse database arguments."""
+    parser = ArgumentParser()
+    add_database_args(parser)
+    args = parser.parse_args()
+    return args
