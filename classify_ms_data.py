@@ -33,7 +33,7 @@ if __name__ == '__main__':
     # Multiclass classification
     if args.multi_class is not None:
 
-        X, Y, _, X_test, Y_test, _ = paa.data.make_multiclass_dataset(
+        X, Y, df, X_test, Y_test, df_test = paa.data.make_multiclass_dataset(
             data_dir, files,
             args.multi_class,
             args.test_types
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         # Could be combined such that test_files is a specific argument for the
         #   maek classification dataset functions, talk to Melodi about this
         if args.test_files is not None:
-            X_test, Y_test, _, _, _, _ = paa.data.make_multiclass_dataset(
+            X_test, Y_test, df_test, _, _, _ = paa.data.make_multiclass_dataset(
                 data_dir,
                 test_files,
                 args.multi_class,
@@ -88,10 +88,14 @@ if __name__ == '__main__':
         #   independent sample type filters are provided
 
         X, Y, df, X_test, Y_test, df_test = paa.data.make_class_dataset(
-            data_dir, files,
-            args.pos_classes, args.pos_class,
-            args.neg_classes, args.neg_class,
-            args.test_types)
+            data_dir,
+            files,
+            args.pos_classes,
+            args.pos_class,
+            args.neg_classes,
+            args.neg_class,
+            args.test_types
+        )
 
         # independent files for the test dataset
         # NOTE: careful with what is used for test_classes argument here.
@@ -100,11 +104,15 @@ if __name__ == '__main__':
         #   filtered from the training files. what is the desired behavior
         #   here??
         if args.test_files is not None:
-            X_test, Y_test, _, _, _, _ = paa.data.make_class_dataset(
-                data_dir, test_files,
-                args.pos_classes, args.pos_class,
-                args.neg_classes, args.neg_class,
-                test_types=None)
+            X_test, Y_test, df_test, _, _, _, _ = paa.data.make_class_dataset(
+                data_dir,
+                test_files,
+                args.pos_classes,
+                args.pos_class,
+                args.neg_classes,
+                args.neg_class,
+                args.test_types
+            )
 
         for classifier in args.class_type:
             for kernel in args.kernel:
