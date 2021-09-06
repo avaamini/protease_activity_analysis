@@ -8,58 +8,95 @@ import os
 
 class SubstrateDatabase(object):
 
-    def __init__(self, file_list):
+    def __init__(self, data_files, sequence_file, names_file=None):
         self.database = {}
-        self.file_list = file_list
+        self.file_list = data_files
 
         self.substrates = {}
         self.proteases = {}
-        self.sequences = {}
 
         self.unique_substrates = set()
         self.unique_proteases = set()
-        self.unique_sequences = set()
 
-        for f in file_list:
-            # TODO: incorporate unified name mapping, as well as sequences
-            data, name, substrates, proteases = self.load_dataset(f, z_score=True)
-            # TODO: have a way to load the sequences
+        for f in data_files:
+
+            data, name, substrates, proteases = self.load_dataset(f)
             self.database[name] = data
 
             self.substrates[name] = substrates
             self.proteases[name] = proteases
-            # self.sequences[name] = sequences
 
             self.unique_substrates.update(substrates)
             self.unique_proteases.update(proteases)
-            # self.unique_sequences.update(sequences)
 
-    def load_dataset(self, file_path, z_score):
+        # load sequence information
+        sequence_info = self.load_sequence_info(sequence_file)
+        self.sequences = sequence_info
+        self.unique_sequences = list(set(sequence_info['Sequence']))
+
+        # Mapping of sequence names to alternative names/descriptors
+        name_mapping = self.load_substrate_names(names_file)
+        self.name_map = name_mapping
+
+    def load_dataset(self, file_path, z_score=True):
         """ Load dataset from a csv file
 
         Args:
             file_path (str): path to the screening data file
             z_score (bool): whether or not to z-score data for standardization
         """
-        # TODO: incorporate the unified name mapping
 
         data = pd.read_csv(file_path)
         file_name = os.path.basename(file_path).split('.csv')[0]
 
-        data = data.groupby('Substrate').mean().reset_index()
-        substrates = list(data['Substrate'])
+        data = data.groupby(data.columns[0]).mean().reset_index()
+        substrates = list(data[data.columns[0]])
         proteases = list(data.iloc[:,1:].columns)
 
         #Correct for possible spaces
         proteases = [item.replace(' ', '') for item in proteases]
-        data.columns = ['Substrate'] + proteases  #Change names in df
+        data.columns = ['Name'] + proteases  #Change names in df
 
-        data = data.set_index('Substrate')
+        data = data.set_index('Name')
 
         if z_score:
             data = (data - data.mean()) / data.std(ddof=0)
 
         return data, file_name, substrates, proteases
+
+    def load_substrate_names(self, names_file):
+        """ Mapping of unified substrate names to alternative names or
+        descriptors.
+
+        Args:
+            names_file (pkl): contains mapping of substrate names/nomenclature
+                to lists of alternative names or supplementary descriptors
+
+        Returns:
+            substrate_dict (dictionary): names / descriptors mapping
+
+        """
+        f = open(names_file, 'rb')
+        return pickle.load(f)
+
+    def set_substrate_dict(self, substrate_dict):
+        """ Set the database's substrate descriptor mapping
+        """
+        self.substrate_dict = substrate_dict
+
+    def load_sequence_info(self, file_path):
+        """ Load sequence information from csv file. Must have column 'Name'
+        providing token names for the sequences, and column 'Sequence' providing
+        sequences themselves. can have auxiliary names/descriptors.
+
+        Args:
+            file_path (str): path to the sequence information file
+        Returns:
+            seq_data (df): data frame of the sequence information
+        """
+        seq_data = pd.read_csv(file_path)
+        seq_data = seq_data.set_index('Name')
+        return seq_data
 
     def get_screen_substrates(self, screen_name):
         """ Get all the substrates from a particular screen.
@@ -110,12 +147,17 @@ class SubstrateDatabase(object):
         protease_cleavage_dict = {}
         screens = self.proteases.keys()
 
+        protease_found = False
         for screen in screens:
             if protease in self.proteases[screen]:
                 print(f"{protease} found in {screen}")
 
                 # get cleavage data for the protease found in particular screen
                 protease_cleavage_dict[screen] = self.database[screen][protease]
+                protease_found = True
+
+        if not protease_found:
+            raise ValueError("Protease not found in database. Please try again.")
 
         protease_cleavage_df = pd.DataFrame.from_dict(protease_cleavage_dict)
 
@@ -145,12 +187,17 @@ class SubstrateDatabase(object):
         substrate_cleavage_dict = {}
         screens = self.substrates.keys()
 
+        substrate_found = False
         for screen in screens:
             if substrate in self.substrates[screen]:
                 print(f"{substrate} found in {screen}")
 
                 # get cleavage data for the protease found in particular screen
                 substrate_cleavage_dict[screen] = self.database[screen].loc[substrate]
+                substrate_found = True
+
+        if not substrate_found:
+            raise ValueError("Substrate not found in database. Please try again.")
 
         substrate_cleavage_df = pd.DataFrame.from_dict(substrate_cleavage_dict)
 
@@ -223,11 +270,25 @@ class SubstrateDatabase(object):
 
         if out_dir is not None:
             top_k_individual.to_csv(
-                os.path.join(out_dir, f"{query}_{z_threshold}_{top_k}_individual.csv")
+                os.path.join(
+                    out_dir,
+                    f"{query}_{z_threshold}_{top_k}_individual.csv"
+                )
             )
 
             top_k_overall.to_csv(
-                os.path.join(out_dir, f"{query}_{z_threshold}_{top_k}_overall.csv")
+                os.path.join(
+                    out_dir,
+                    f"{query}_{z_threshold}_{top_k}_overall.csv"
+                )
             )
 
         return top_k_individual, top_k_overall
+
+    def plot_zscore_dist(self, df):
+        """ Plot the distribution of zscores for a given matrix of cleavage data.
+
+        Args:
+            df (pandas df): data matrix with cleavage data of interest
+        """
+        return

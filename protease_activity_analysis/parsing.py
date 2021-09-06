@@ -125,8 +125,12 @@ def add_database_args(parser: ArgumentParser):
         parser: ArgumentParser
 
     """
-    parser.add_argument('--file_list', type=str, nargs="*", default=None,
-        help='list of screen files to load into the database')
+    parser.add_argument('--data_files', type=str, nargs="*", default=None,
+        help='list of dataset files to load into the database')
+    parser.add_argument('--sequence_file', type=str, default=None,
+        help='path to file containing the substrate-sequence information')
+    parser.add_argument('--names_file', type=str, default=None,
+        help='path to file containing substrate names and descriptors')
 
 def parse_database_args() -> Namespace:
     """ Parse database arguments."""
