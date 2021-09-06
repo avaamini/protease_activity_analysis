@@ -50,7 +50,8 @@ def multiclass_classify(X, Y, model_type, kernel, k_splits, save_path,
 
     classes = np.unique(Y)
 
-    for i, (train, val) in enumerate(cv.split(X, Y)):
+    # for i, (train, val) in enumerate(cv.split(X, Y)):
+    for i in range(k_splits):
 
         # Trials are completely independent wrt initialization of classifier.
         if model_type == "svm": # support vector machine with kernel
@@ -62,10 +63,14 @@ def multiclass_classify(X, Y, model_type, kernel, k_splits, save_path,
         elif model_type == "lr": # logistic regression with L2 loss
             classifier = linear_model.LogisticRegression(random_state=seed)
 
-        X_train = X[train]
-        Y_train = Y[train]
-        X_val = X[val]
-        Y_val = Y[val]
+        # X_train = X[train]
+        # Y_train = Y[train]
+        # X_val = X[val]
+        # Y_val = Y[val]
+
+        X_train, X_val, Y_train, Y_val = model_selection.train_test_split(
+            X, Y, test_size=0.2, shuffle=True, stratify=Y
+        )
 
         # apply scaling
         if standard_scale:
@@ -175,7 +180,8 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
     aucs_test = []
 
     # Training and evaluation
-    for i, (train, val) in enumerate(cv.split(X, Y)):
+#    for i, (train, val) in enumerate(cv.split(X, Y)):
+    for i in range(k_splits)
 
         # Trials are completely independent wrt initialization of classifier.
         if model_type == "svm": # support vector machine with kernel
@@ -187,10 +193,13 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
         elif model_type == "lr": # logistic regression with L2 loss
             classifier = linear_model.LogisticRegression(random_state=seed)
 
-        X_train = X[train]
-        Y_train = Y[train]
-        X_val = X[val]
-        Y_val = Y[val]
+        # X_train = X[train]
+        # Y_train = Y[train]
+        # X_val = X[val]
+        # Y_val = Y[val]
+        X_train, X_val, Y_train, Y_val = model_selection.train_test_split(
+            X, Y, test_size=0.2, shuffle=True, stratify=Y
+        )
 
         # feature scaling for standardization. compute scaler on training set.
         if standard_scale:

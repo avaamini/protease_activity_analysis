@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     # supply a list of pkl files constituing the independent test set
     if args.test_files is not None:
-        test_files = args.test
+        test_files = args.test_files
 
     independent_test = (args.test_files is not None) or (args.test_types is not None)
 

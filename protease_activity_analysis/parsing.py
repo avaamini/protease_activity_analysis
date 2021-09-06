@@ -67,6 +67,14 @@ def add_ms_args(parser: ArgumentParser):
         help='whether to apply feature scaling/standardization for classification')
     parser.add_argument('--seed', type=int, default=None,
         help='random integer to set the random state of the classifer.')
+    parser.add_argument('--class_type', type=str, nargs="*", default=['svm'],
+        help='type of classifier: svm, random forest, logistic regression')
+    parser.add_argument('--kernel', type=str, nargs="*", default=['linear'],
+        help='type of kernel for svm: linear, rbf, poly')
+    parser.add_argument('--num_folds', type=int, default=10,
+        help='number of folds for cross validation')
+    parser.add_argument('--val_split', type=float, default=0.2,
+        help='percent of training set for validation')
 
     ## Analysis arguments
     parser.add_argument('--normalization', type=str, default='zscore',
@@ -75,12 +83,6 @@ def add_ms_args(parser: ArgumentParser):
         help='use to plot volcano plots')
     parser.add_argument('--pca', action='store_true', default=False,
         help='use to plot PCA')
-    parser.add_argument('--class_type', type=str, nargs="*", default=['svm'],
-        help='type of classifier: svm, random forest, logistic regression')
-    parser.add_argument('--kernel', type=str, nargs="*", default=['linear'],
-        help='type of kernel for svm: linear, rbf, poly')
-    parser.add_argument('--num_folds', type=int, default=10,
-        help='number of folds for cross validation')
 
     ## Save arguments
     parser.add_argument('--pkl_name', type=str, default=None,
