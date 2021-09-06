@@ -13,6 +13,6 @@ data = paa.database.SubstrateDatabase(
     names_file=args.names_file
 )
 q1_individual, q1_overall = data.get_top_hits('Q1', 'substrate', top_k=10, out_dir=None, z_threshold=None)
-
+#Test
 # python test_database.py --data_files data/screens/PAA/Bhatia1_PAA.csv data/s
 # creens/PAA/Bhatia2_PAA.csv --sequence_file data/screens/PAA/Peptide_Inventory.csv --names_file data/screens/PAA/names_dict.pkl
