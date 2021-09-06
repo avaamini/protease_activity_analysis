@@ -181,7 +181,7 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
 
     # Training and evaluation
 #    for i, (train, val) in enumerate(cv.split(X, Y)):
-    for i in range(k_splits)
+    for i in range(k_splits):
 
         # Trials are completely independent wrt initialization of classifier.
         if model_type == "svm": # support vector machine with kernel

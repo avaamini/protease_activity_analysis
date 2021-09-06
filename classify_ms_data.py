@@ -32,11 +32,12 @@ if __name__ == '__main__':
 
     # Multiclass classification
     if args.multi_class is not None:
+
         X, Y, _, X_test, Y_test, _ = paa.data.make_multiclass_dataset(
             data_dir, files,
             args.multi_class,
-            args.test_types)
-
+            args.test_types
+        )
         # independent files for the test dataset
         # NOTE: careful with what is used for test_classes argument here.
         # Assumes that you have specified the independent test data based
@@ -46,10 +47,13 @@ if __name__ == '__main__':
         # Could be combined such that test_files is a specific argument for the
         #   maek classification dataset functions, talk to Melodi about this
         if args.test_files is not None:
-            X_test, Y_test, _, _, _ = paa.data.make_multiclass_dataset(
-                data_dir, test_files,
+            X_test, Y_test, _, _, _, _ = paa.data.make_multiclass_dataset(
+                data_dir,
+                test_files,
                 args.multi_class,
-                test_types=None)
+                args.test_types
+            )
+
 
         for classifier in args.class_type:
             for kernel in args.kernel:
