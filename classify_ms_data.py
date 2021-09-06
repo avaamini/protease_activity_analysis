@@ -38,14 +38,7 @@ if __name__ == '__main__':
             args.multi_class,
             args.test_types
         )
-        # independent files for the test dataset
-        # NOTE: careful with what is used for test_classes argument here.
-        # Assumes that you have specified the independent test data based
-        #   on the files. If test_classes != None, those will have been
-        #   filtered from the training files. what is the desired behavior
-        #   here??
-        # Could be combined such that test_files is a specific argument for the
-        #   maek classification dataset functions, talk to Melodi about this
+
         if args.test_files is not None:
             X_test, Y_test, df_test, _, _, _ = paa.data.make_multiclass_dataset(
                 data_dir,
@@ -53,7 +46,6 @@ if __name__ == '__main__':
                 args.multi_class,
                 args.test_types
             )
-
 
         for classifier in args.class_type:
             for kernel in args.kernel:
@@ -84,8 +76,6 @@ if __name__ == '__main__':
                         out_dir, save_name_test)
 
     else: # Binary classification with k fold cross validation
-        # If args.test_classes = None, X_test, Y_test are None; assumes no
-        #   independent sample type filters are provided
 
         X, Y, df, X_test, Y_test, df_test = paa.data.make_class_dataset(
             data_dir,
@@ -97,12 +87,6 @@ if __name__ == '__main__':
             args.test_types
         )
 
-        # independent files for the test dataset
-        # NOTE: careful with what is used for test_classes argument here.
-        # Assumes that you have specified the independent test data based
-        #   on the files. If test_classes != None, those will have been
-        #   filtered from the training files. what is the desired behavior
-        #   here??
         if args.test_files is not None:
             X_test, Y_test, df_test, _, _, _, _ = paa.data.make_class_dataset(
                 data_dir,
