@@ -319,7 +319,7 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     mean_auc = metrics.auc(mean_fpr, mean_tpr) # average auc
     std_auc = np.std(aucs)
     ax.plot(mean_fpr, mean_tpr, color='b',
-            label=r'Mean ROC (AUC = %0.3f $\pm$ %0.f)' % (mean_auc, std_auc),
+            label=r'Mean ROC (AUC = %0.3f $\pm$ %0.3f)' % (mean_auc, std_auc),
             lw=2, alpha=.8)
 
     # shading for standard deviation across the k-folds of cross validation
