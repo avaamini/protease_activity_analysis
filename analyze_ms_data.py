@@ -16,8 +16,8 @@ def load_urine_data(args):
     features, renamed = paa.data.get_plex(args.plex_path)
 
     # if only want to use a subset of the features to construct the data matrix
-    if args.features_to_use != None:
-        features = args.features_to_use
+    if args.features_filter != None:
+        features = args.features_filter
 
     # process the data and do normalizations
     filtered_data = paa.data.process_syneos_data(syneos_data, features,
@@ -38,13 +38,13 @@ def load_urine_data(args):
         mean_scaled.to_pickle(os.path.join(data_dir, pkl_name_mean))
         z_scored.to_pickle(os.path.join(data_dir, pkl_name_z))
 
-    return mean_scaled, z_scored, plex, renamed, pkl_name, pkl_name_mean, pkl_name_z
+    return mean_scaled, z_scored, features, renamed, pkl_name, pkl_name_mean, pkl_name_z
 
 if __name__ == '__main__':
     args = paa.parsing.parse_ms_args()
     out_dir = get_output_dir()
 
-    mean_scaled, z_scored, plex, renamed, _, _, _ = load_urine_data(args)
+    mean_scaled, z_scored, features, renamed, _, _, _ = load_urine_data(args)
 
     """ volcano plot """
     if args.volcano:
