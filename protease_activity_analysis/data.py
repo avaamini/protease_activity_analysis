@@ -104,36 +104,38 @@ def process_syneos_data(data_matrix, features_to_use, stock_id, out_dir,
     if 'Stock Type' in filtered_matrix.index.names: # multiple stocks specified
         for stock in stock_id:
             stock_values = filtered_matrix.loc['Stock'].loc[stock].to_numpy()
-
             # find the samples matching the current stock and normalize
             filtered_matrix.loc[(
                 filtered_matrix.index.get_level_values('Stock Type')==stock)] \
                 /= stock_values
+            filtered_matrix = filtered_matrix.drop('Stock', level='Sample Type')
+            filtered_matrix.reset_index(inplace=True)
+            filtered_matrix = filtered_matrix.drop('Stock Type', axis=1)
+
     else: # one stock only, no additional file
         stock_values = filtered_matrix.loc['Stock'].loc[stock_id].to_numpy()
-        filtered_matrix = filtered_matrix / stock_values
-
-    filtered_matrix = filtered_matrix.drop('Stock', level='Sample Type')
+        filtered_matrix /= stock_values
+        filtered_matrix = filtered_matrix.drop('Stock', level='Sample Type')
+        filtered_matrix.reset_index(inplace=True)
 
     # eliminate those samples that do not meet the sample type name criterion
     if sample_type_to_use != None:
-        undo_multi = filtered_matrix.reset_index()
-        filtered_matrix = undo_multi[undo_multi['Sample Type'].isin(sample_type_to_use)]
-        filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
+        filtered_matrix = filtered_matrix[filtered_matrix['Sample Type'].isin(
+            sample_type_to_use)
+        ]
 
     # eliminate those samples that do not meet the sample ID name criterion
     if sample_ID_to_use != None:
-        undo_multi = filtered_matrix.reset_index()
-        filtered_matrix = undo_multi[undo_multi['Sample ID'].str.contains(
+        filtered_matrix = filtered_matrix[filtered_matrix['Sample ID'].str.contains(
             sample_ID_to_use)]
-        filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
 
     # eliminate those samples that are specified for exclusion
     if sample_ID_to_exclude != None:
-        undo_multi = filtered_matrix.reset_index()
-        filtered_matrix = undo_multi[~undo_multi['Sample ID'].isin(sample_ID_to_exclude)]
-        filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
+        filtered_matrix = filtered_matrix[~filtered_matrix['Sample ID'].isin(
+            sample_ID_to_exclude)
+        ]
 
+    filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
     filtered_matrix.to_csv(os.path.join(out_dir, f"{save_name}_filtered_matrix.csv"))
 
     return filtered_matrix
@@ -152,6 +154,8 @@ def mean_scale_matrix(data_matrix, out_dir, save_name):
     """
 
     # mean scaling
+    import pdb; pdb.set_trace()
+
     mean_scaled = data_matrix.div(data_matrix.mean(axis=1),axis=0)
     mean_scaled.to_csv(os.path.join(out_dir, f"{save_name}_mean_scaled.csv"))
 

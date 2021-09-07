@@ -22,6 +22,7 @@ def load_urine_data(args):
     # process the data and do normalizations
     filtered_data = paa.data.process_syneos_data(syneos_data, features,
         args.stock, out_dir, args.type_filter, args.ID_filter, args.ID_exclude, args.save_name)
+    import pdb; pdb.set_trace()
     mean_scaled = paa.data.mean_scale_matrix(filtered_data, out_dir, args.save_name)
     z_scored = paa.data.standard_scale_matrix(filtered_data, out_dir, args.save_name)
 
