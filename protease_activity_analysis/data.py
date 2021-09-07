@@ -384,29 +384,3 @@ def get_plex(data_path):
     renamed = reporters["Name"].tolist()
 
     return plex, renamed
-
-def read_names_from_uniprot(data_path, sheet_names):
-    """ Read a excel file with Uniprot data and extract all gene names
-
-    Args:
-        data_path (str): path to the uniprot xlsx file most be exported from
-            Uniprot and contain a "Gene name column"
-        sheet_names (list, str): sheets to read
-
-    Returns:
-        all_names (dict): key (sheet), value (list of names)
-    """
-
-    # Import excel file
-    sheet_data = pd.read_excel(data_path, sheet_names, header=0)
-
-    all_names = {}
-    for sheet in sheet_names:
-        data = sheet_data[sheet]
-        # Create a new column with the nuber of names for each inhibitor
-        data['n'] = data["Gene names"].apply(lambda x: x.split(" "))
-
-        names = list(itertools.chain.from_iterable(data['n'].values))
-        all_names[sheet] = names
-
-    return all_names
