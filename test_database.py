@@ -12,9 +12,8 @@ data = paa.database.SubstrateDatabase(
     sequence_file=args.sequence_file,
     names_file=args.names_file
 )
-import pdb; pdb.set_trace()
 # Should return error because can't search by Q1 (yet), S52 or something from the screens that are input should work
-q1_individual, q1_overall = data.get_top_hits('S52', 'substrate', top_k=10, out_dir=None, z_threshold=None)
+q1_individual, q1_overall = data.get_top_hits('Ava', 'substrate', top_k=10, out_dir=None, z_threshold=None)
 #Test
 # python test_database.py --data_files data/screens/PAA/PAA_screens/Bhatia1_PAA.csv data/screens/PAA/PAA_screens/Bhatia2_PAA.csv --sequence_file data/screens/PAA/Peptide_Inventory_150.csv --names_file data/screens/PAA/names_dict.pkl
 ### For kinetic screen and sequence info files, need to have the substrate names by indicated by 'Name' (rather than 'PAA')

@@ -286,57 +286,57 @@ def classify(classifier, X, Y, pos_class):
 
 
 ## TODO: fix this
-def rfe_analysis(X, Y, class_type, kernel, k_splits, out_path, save_name,
-    standard_scale=False):
-    """Recursive feature elimination. Tunes the number of features selected
-            using k-fold cross validation.
-
-    Args:
-        X: full dataset (n x m) where n is the number of samples and m is the
-            number of features. Includes samples for both train/test.
-        Y: true labels (n x j), where n is the number of samples and j is the
-            number of classes. Includes labels for both train/test.
-        class_type ("svm", "rf", "lr"): type of classifier
-        kernel ("linear", "poly", "rbf"): type of kernel for svm
-        k_splits: number of splits for cross validation
-        out_path: path to save file
-        save_name (str): string token for file saving
-        standard_scale (bool): whether to employ feature standardization
-
-    Returns:
-
-    """
-    # splits for k-fold cross validation
-    cross_val = model_selection.StratifiedKFold(n_splits=k_splits)
-
-    if class_type == "svm": # support vector machine with kernel
-        classifier = svm.SVC(kernel=kernel, probability=True)
-    elif class_type == "rf": # random forest classifier
-        classifier = ensemble.RandomForestClassifier(max_depth=2)
-    elif class_type == "lr": # logistic regression with L2 loss
-        classifier = linear_model.LogisticRegression()
-
-    # use accuracy, which is reflective of number of correct classifications
-    rfe_cv = feature_selection.RFECV(estimator=classifier, step=1, \
-        cv=cross_val, scoring='accuracy')
-
-    if standard_scale:
-        # applies a blanket scaler to all data...
-        scaler = get_scaler(X)
-        X = scaler.transform(X)
-
-    rfe_cv.fit(X, Y)
-    # print("Optimal number of features : %d" % rfe_cv.n_features_)
-
-    ## Plot # of reporters vs. accuracy
-    g = sns.lineplot(x=range(1, len(rfe_cv.grid_scores_)+1), y=rfe_cv.grid_scores_)
-    g.set_xlabel('Number of reporters', fontsize=12)
-    g.set_ylabel('Cross validation accuracy', fontsize=12)
-    g.set_xticks(range(1, len(rfe_cv.grid_scores_)+1))
-    g.set_title('Recursive feature elimination')
-
-    file = save_name + "_rfe.pdf"
-    fig = g.get_figure()
-    fig.savefig(os.path.join(out_path, file))
-
-    return
+# def rfe_analysis(X, Y, class_type, kernel, k_splits, out_path, save_name,
+#     standard_scale=False):
+#     """Recursive feature elimination. Tunes the number of features selected
+#             using k-fold cross validation.
+#
+#     Args:
+#         X: full dataset (n x m) where n is the number of samples and m is the
+#             number of features. Includes samples for both train/test.
+#         Y: true labels (n x j), where n is the number of samples and j is the
+#             number of classes. Includes labels for both train/test.
+#         class_type ("svm", "rf", "lr"): type of classifier
+#         kernel ("linear", "poly", "rbf"): type of kernel for svm
+#         k_splits: number of splits for cross validation
+#         out_path: path to save file
+#         save_name (str): string token for file saving
+#         standard_scale (bool): whether to employ feature standardization
+#
+#     Returns:
+#
+#     """
+#     # splits for k-fold cross validation
+#     cross_val = model_selection.StratifiedKFold(n_splits=k_splits)
+#
+#     if class_type == "svm": # support vector machine with kernel
+#         classifier = svm.SVC(kernel=kernel, probability=True)
+#     elif class_type == "rf": # random forest classifier
+#         classifier = ensemble.RandomForestClassifier(max_depth=2)
+#     elif class_type == "lr": # logistic regression with L2 loss
+#         classifier = linear_model.LogisticRegression()
+#
+#     # use accuracy, which is reflective of number of correct classifications
+#     rfe_cv = feature_selection.RFECV(estimator=classifier, step=1, \
+#         cv=cross_val, scoring='accuracy')
+#
+#     if standard_scale:
+#         # applies a blanket scaler to all data...
+#         scaler = get_scaler(X)
+#         X = scaler.transform(X)
+#
+#     rfe_cv.fit(X, Y)
+#     # print("Optimal number of features : %d" % rfe_cv.n_features_)
+#
+#     ## Plot # of reporters vs. accuracy
+#     g = sns.lineplot(x=range(1, len(rfe_cv.grid_scores_)+1), y=rfe_cv.grid_scores_)
+#     g.set_xlabel('Number of reporters', fontsize=12)
+#     g.set_ylabel('Cross validation accuracy', fontsize=12)
+#     g.set_xticks(range(1, len(rfe_cv.grid_scores_)+1))
+#     g.set_title('Recursive feature elimination')
+#
+#     file = save_name + "_rfe.pdf"
+#     fig = g.get_figure()
+#     fig.savefig(os.path.join(out_path, file))
+#
+#     return
