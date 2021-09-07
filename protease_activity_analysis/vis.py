@@ -170,7 +170,7 @@ def plot_pca(data_matrix, features, group_key, pca_groups, biplot,
 
     return
 
-def plot_volcano(data_matrix, group_key, group1, group2, plex, out_path, file_name):
+def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_name):
     """ Volcano plot for differential enrichment of features between two groups.
 
     Args:

@@ -1,4 +1,4 @@
-from . import data
+from . import syneos
 from . import tests
 from . import vis
 from . import classify

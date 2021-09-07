@@ -6,7 +6,21 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from sklearn import svm, model_selection, metrics, ensemble, linear_model, feature_selection
-from .data import get_scaler
+from sklearn.preprocessing import StandardScaler
+
+def get_scaler(batch):
+    """ Standardize features by removing the mean and scaling to unit variance.
+    Provide StandardScaler that can then be applied to other data.
+
+    Args:
+        batch (np.array): batch of data to generate the scaler with respect to,
+            N x M where N: number of samples; M: number of features
+    Returns:
+        scaler (StandardScaler): standard scaler (0 mean, 1 var) on the batch
+    """
+    scaler = StandardScaler()
+    scaler.fit((batch))
+    return scaler
 
 def multiclass_classify(X, Y, model_type, kernel, k_splits, save_path,
     standard_scale=False, seed=None, X_test=None, Y_test=None):

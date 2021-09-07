@@ -28,12 +28,12 @@ def add_ms_args(parser: ArgumentParser):
         help='number of sheets for excel file')
 
     ## Filter, group, and label arguments
-    ## Data filtering
-    parser.add_argument('--type_filter', type=str, nargs="*", default=None,
+    # Data filtering
+    parser.add_argument('--type_include', type=str, nargs="*", default=None,
         help='nomenclature filter for sample type to use (keep)')
-    parser.add_argument('--ID_filter', type=str, default=None,
+    parser.add_argument('--ID_include', type=str, default=None,
         help='nomenclature filter for sample ID to use (keep)')
-    parser.add_argument('--features_filter', type=str, nargs="*", default=None,
+    parser.add_argument('--features_include', type=str, nargs="*", default=None,
         help='names of features to include in analysis')
     parser.add_argument('--ID_exclude', type=str, nargs='*', default=None,
         help='IDs for samples to exclude from the output matrix')
@@ -50,7 +50,7 @@ def add_ms_args(parser: ArgumentParser):
     parser.add_argument('--biplot', type=bool, default=False,
         help='True if a biplot annotation on PCA is desired')
 
-    # Classification arguments
+    ## Classification arguments
     parser.add_argument('--multi_class', type=str, nargs='*', default=None,
         help='names of classes for multi class classification')
     parser.add_argument('--pos_classes', type=str, nargs="*", default=None,
@@ -77,7 +77,7 @@ def add_ms_args(parser: ArgumentParser):
         help='percent of training set for validation')
 
     ## Analysis arguments
-    parser.add_argument('--normalization', type=str, default='zscore',
+    parser.add_argument('--normalization', type=str, default=None,
         help='type of normalization to use for classification')
     parser.add_argument('--volcano', action='store_true', default=False,
         help='use to plot volcano plots')
@@ -85,10 +85,10 @@ def add_ms_args(parser: ArgumentParser):
         help='use to plot PCA')
 
     ## Save arguments
-    parser.add_argument('--pkl_name', type=str, default=None,
-        help='name to save pickle file')
     parser.add_argument('--save_name', type=str,
-        help='name to save plots')
+        help='name to save plots and files')
+    parser.add_argument('--save_dir', type=str, default='outputs',
+        help='path to directory for saving plots and files')
 
 def parse_ms_args() -> Namespace:
     """ Parse MS data analysis arguments."""
@@ -103,7 +103,6 @@ def add_kinetic_args(parser: ArgumentParser):
     Args:
         parse: ArgumentParser
     """
-
     parser.add_argument('--data_path', type=str, default=None,
         help='path to load data from')
     parser.add_argument('--fc_time', type=int, default=30,
@@ -123,7 +122,6 @@ def add_database_args(parser: ArgumentParser):
 
     Args:
         parser: ArgumentParser
-
     """
     parser.add_argument('--data_files', type=str, nargs="*", default=None,
         help='list of dataset files to load into the database')
