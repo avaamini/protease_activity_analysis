@@ -55,9 +55,8 @@ class SubstrateDatabase(object):
 
         #Correct for possible spaces
         proteases = [item.replace(' ', '') for item in proteases]
-        data.columns = ['Name'] + proteases  #Change names in df
-
-        data = data.set_index('Name')
+        data.columns = [data.columns[0]] + proteases  #Change names in df
+        data = data.set_index(data.columns[0])
 
         if z_score:
             data = (data - data.mean()) / data.std(ddof=0)
@@ -95,7 +94,7 @@ class SubstrateDatabase(object):
             seq_data (df): data frame of the sequence information
         """
         seq_data = pd.read_csv(file_path)
-        seq_data = seq_data.set_index('Name')
+        seq_data = seq_data.set_index(seq_data.columns[0])
         return seq_data
 
     def get_screen_substrates(self, screen_name):
