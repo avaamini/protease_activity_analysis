@@ -140,9 +140,9 @@ class SyneosDataset:
                 filtered_matrix.loc[(
                     filtered_matrix.index.get_level_values('Stock Type')==stock)] \
                     /= stock_values
-                filtered_matrix = filtered_matrix.drop('Stock', level='Sample Type')
-                filtered_matrix.reset_index(inplace=True)
-                filtered_matrix = filtered_matrix.drop('Stock Type', axis=1)
+            filtered_matrix = filtered_matrix.drop('Stock', level='Sample Type')
+            filtered_matrix.reset_index(inplace=True)
+            filtered_matrix = filtered_matrix.drop('Stock Type', axis=1)
 
         else: # one stock only, no additional file
             stock_values = filtered_matrix.loc['Stock'].loc[stock_id].to_numpy()
