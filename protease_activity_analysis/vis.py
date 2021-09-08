@@ -267,7 +267,7 @@ def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_na
     return
 
 def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
-    cmap='Blues'):
+    cmap):
     """ Plots confusion matrix results from multiclass classification.
 
     Args:
@@ -281,12 +281,13 @@ def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
         confusion matrix
     """
     ## Plot confusion matrix, average over the folds
+    sns.set(font_scale=2.0)
     g = sns.heatmap(cm_df, annot=True,
-        xticklabels=all_classes, yticklabels=test_classes, cmap='Blues')
+        xticklabels=all_classes, yticklabels=test_classes, cmap=cmap)
     g.set_yticklabels(g.get_yticklabels(), rotation = 0)
     g.set_xlabel('Predicted Label', fontsize=12)
     g.set_ylabel('True Label', fontsize=12)
-    g.set_title('Confusion Matrix Performance', fontsize=14)
+    g.set_title(file_name, fontsize=14)
 
     file_name = file_name + "_confusion.pdf"
     fig = g.get_figure()
