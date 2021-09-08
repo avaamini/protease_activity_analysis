@@ -9,29 +9,31 @@ import os
 class SubstrateDatabase(object):
 
     def __init__(self, data_files, sequence_file, names_file=None):
-        self.database = {}
+        self.screens = {}
         self.file_list = data_files
 
         self.substrates = {}
         self.proteases = {}
 
-        self.unique_substrates = set()
-        self.unique_proteases = set()
+        unique_substrates = set()
+        unique_proteases = set()
 
         for f in data_files:
 
             data, name, substrates, proteases = self.load_dataset(f)
-            self.database[name] = data
+            self.screens[name] = data
 
             self.substrates[name] = substrates
             self.proteases[name] = proteases
 
-            self.unique_substrates.update(substrates)
-            self.unique_proteases.update(proteases)
+            unique_substrates.update(substrates)
+            unique_proteases.update(proteases)
+        self.screen_substrates = list(unique_substrates)
+        self.screen_proteases = list(unique_proteases)
 
         # load sequence information
         sequence_info = self.load_sequence_info(sequence_file)
-        self.sequences = sequence_info
+        self.database = sequence_info
         self.unique_sequences = list(set(sequence_info['Sequence']))
 
         # Mapping of sequence names to alternative names/descriptors
@@ -94,7 +96,13 @@ class SubstrateDatabase(object):
             seq_data (df): data frame of the sequence information
         """
         seq_data = pd.read_csv(file_path)
-        seq_data = seq_data.set_index(seq_data.columns[0])
+        seq_data = seq_data.set_index([seq_data.columns[0], 'Sequence', 'Composition'])
+
+        # combine alternative names into list
+        seq_data['Names'] = seq_data.values.tolist()
+        seq_data.reset_index(inplace=True)
+        seq_data.set_index(seq_data.columns[0])
+
         return seq_data
 
     def get_screen_substrates(self, screen_name):
@@ -130,7 +138,26 @@ class SubstrateDatabase(object):
         Returns:
             screen_df (df): data from screen of interest
         """
-        return self.database[screen_name]
+        return self.screens[screen_name]
+
+    def get_sequence_names(self, sequence):
+        """ Get the substrate names for a sequence of interest.
+
+        Args:
+            sequence (str): sequence of interest.
+
+        Returns:
+            names (list, str): names for the sequence
+        """
+        sequence_data = self.database.loc[self.database['Sequence'] == sequence]
+
+        if sequence_data.empty:
+            raise ValueError("Substrate not found in database. Please try again.")
+
+        name = sequence_data['Name']
+        all_names = sequence_data['Names']
+        alt_names = [x for x in all_names if x != 'nan']
+        return name, all_names
 
     def search_protease(self, protease, out_dir=None, z_threshold=None):
         """ Return df of substrates and their cleavage by a given protease
@@ -141,7 +168,7 @@ class SubstrateDatabase(object):
             z_threshold (float): upper bound z-score cutoff for substrate return
         Returns:
             protease_cleavage_df (pandas df): zscores for protease against all
-                substrates found in the database
+                substrates found in the screen datasets
         """
         protease_cleavage_dict = {}
         screens = self.proteases.keys()
@@ -152,11 +179,11 @@ class SubstrateDatabase(object):
                 print(f"{protease} found in {screen}")
 
                 # get cleavage data for the protease found in particular screen
-                protease_cleavage_dict[screen] = self.database[screen][protease]
+                protease_cleavage_dict[screen] = self.screens[screen][protease]
                 protease_found = True
 
         if not protease_found:
-            raise ValueError("Protease not found in database. Please try again.")
+            raise ValueError("Protease not found in datasets. Please try again.")
 
         protease_cleavage_df = pd.DataFrame.from_dict(protease_cleavage_dict)
 
@@ -172,6 +199,22 @@ class SubstrateDatabase(object):
 
         return protease_cleavage_df
 
+    def get_unified_name(self, substrate):
+        """ Get the unified name for a substrate of interest
+
+        Args:
+            substrate (str): query of interest
+        Returns:
+            (str): unified nomenclature for the query
+        """
+        sub_info = self.database[self.database['Names'].apply(
+            lambda x: substrate in x)
+        ]
+        if sub_info.empty:
+            raise ValueError("Substrate not found in database. Please try again.")
+
+        return sub_info['Name'].item()
+
     def search_substrate(self, substrate, out_dir=None, z_threshold=None):
         """ Return df of proteases and their cleavage of a given substrate
 
@@ -181,22 +224,34 @@ class SubstrateDatabase(object):
             z_threshold (float): upper bound z-score cutoff for substrate return
         Returns:
             protease_cleavage_df (pandas df): zscores for substrate against all
-                proteases found in the database
+                proteases found in the screen datasets
         """
-        substrate_cleavage_dict = {}
         screens = self.substrates.keys()
 
+        def query_sub(sub, datasets):
+            """ Get cleavage data for a substrate of interest"""
+            sub_dict = {}
+            for d in datasets:
+                if sub in self.substrates[d]:
+                    print(f"{sub} found in {d}")
+
+                    # get cleavage data for the protease found in dataset
+                    sub_dict[d] = self.screens[d].loc[sub]
+            return sub_dict
+
         substrate_found = False
-        for screen in screens:
-            if substrate in self.substrates[screen]:
-                print(f"{substrate} found in {screen}")
+        substrate_cleavage_dict = query_sub(substrate, screens)
 
-                # get cleavage data for the protease found in particular screen
-                substrate_cleavage_dict[screen] = self.database[screen].loc[substrate]
-                substrate_found = True
+        if not substrate_cleavage_dict:
+            print("Searching by alternative names...")
+            sub_name = self.get_unified_name(substrate)
 
-        if not substrate_found:
-            raise ValueError("Substrate not found in database. Please try again.")
+            if sub_name == '':
+                raise ValueError(
+                    "Substrate not found in datasets. Please try again."
+                )
+            print(f"Substrate found under unified name {sub_name}")
+            substrate_cleavage_dict = query_sub(sub_name, screens)
 
         substrate_cleavage_df = pd.DataFrame.from_dict(substrate_cleavage_dict)
 
@@ -211,6 +266,23 @@ class SubstrateDatabase(object):
             )
 
         return substrate_cleavage_df
+
+    def search_sequence(self, sequence, out_dir=None, z_threshold=None):
+        """ Return df of proteases and their cleavage of a given sequence
+
+        Args:
+            sequence (str): sequence of interest
+            out_dir (str): if specified, directory for writing data
+            z_threshold (float): upper bound z-score cutoff for substrate return
+        Returns:
+            protease_cleavage_df (pandas df): zscores for substrate against all
+                proteases found in the screen datasets
+        """
+        seq_name, seq_alt_names = self.get_sequence_names(sequence)
+
+        # search for the sequence in the database
+        seq_cleavage_df = self.search_substrate(seq_name, out_dir, z_threshold)
+        return seq_cleavage_df
 
     def get_top_hits(self, query, query_type, top_k, out_dir=None, z_threshold=None):
         """ Get the top hits from a cleavage dataset.

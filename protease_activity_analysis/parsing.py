@@ -68,7 +68,7 @@ def add_ms_args(parser: ArgumentParser):
     parser.add_argument('--seed', type=int, default=None,
         help='random integer to set the random state of the classifer.')
     parser.add_argument('--class_type', type=str, nargs="*", default=['svm'],
-        help='type of classifier: svm, random forest, logistic regression')
+        help='type of classifier: svm, rf (random forest), lr (logistic regression)')
     parser.add_argument('--kernel', type=str, nargs="*", default=['linear'],
         help='type of kernel for svm: linear, rbf, poly')
     parser.add_argument('--num_folds', type=int, default=10,
