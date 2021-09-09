@@ -111,7 +111,7 @@ else: # Binary classification with k fold cross validation
             file_list=args.test_files
         )
 
-        X_test, Y_test, df_test, _, _, _, _ = test_data.make_class_dataset(
+        X_test, Y_test, df_test, _, _, _ = test_data.make_class_dataset(
             args.pos_classes,
             args.pos_class,
             args.neg_classes,
