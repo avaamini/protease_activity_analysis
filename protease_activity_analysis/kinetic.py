@@ -11,6 +11,7 @@ import matplotlib.font_manager as fm
 
 from adjustText import adjust_text
 
+
 class KineticDataset:
     """ Dataset of kinetic protease activity measurements. """
     def __init__(self, data_path, fc_time, linear_time, out_dir, blank=0):
@@ -164,3 +165,41 @@ class KineticDataset:
     def get_intial_rate_zscore(self):
         """ Getter for initial rate, z-scored """
         return self.initial_rate_zscore
+
+
+# def kinetic_visualization(data_path, col_dict, row_dict, out_dir):
+#     """ Visualizes protease activity data in different formats
+#
+#     Args:
+#         data_path: 2 options:
+#             1) (str): directory of .csv file with matrix containing data to visualized where rows are substrates and
+#             columns are samples. First cell contains screen name
+#             2) (list, str): directories of .csv files for each sample in a given screen with a single column with name
+#             of sample and rows corresponding to substrates screened. Requires building a pandas df from different inputs
+#         col_dict (pandas df): labels that classify columns by some property (e.g. protease class for proteases in screen)
+#         row_dict (pandas df): labels that classify rows by some property (e.g. substrate by their protease susceptibility)
+#         out_dir (str): directory to save all outputs
+#
+#     Returns:
+#
+#     """
+#     # TO DO: Load screening data (2 options)
+#     #  aggregate_data=
+#
+#     # TO DO: Load name
+#     # screen_name =
+#
+#     # TO DO: Create directory
+#     save_dir = os.path.join(out_dir, screen_name)
+#     if not os.path.exists(save_dir):
+#         os.makedirs(save_dir)
+#         print('Directory created', save_dir)
+#
+#     # Generate relevant outputs and plots
+#     paa.vis.plot_heatmap(aggregate_data)
+#     paa.vis.plot_correlation_matrix()
+#     paa.vis.plot_zscore_scatter()
+#     paa.vis.plot_zscore_hist()
+#     paa.vis.get_top_hits()
+
+
