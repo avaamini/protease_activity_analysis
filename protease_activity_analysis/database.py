@@ -6,7 +6,6 @@ import seaborn as sns
 import pickle
 import os
 
-
 class SubstrateDatabase(object):
 
     def __init__(self, data_files, sequence_file, names_file=None):
@@ -16,14 +15,15 @@ class SubstrateDatabase(object):
         self.substrates = {}
         self.proteases = {}
 
-        self.get_screen_names = []
+        self.screen_names = []
+
         unique_substrates = set()
         unique_proteases = set()
 
         for f in data_files:
 
             data, name, substrates, proteases = self.load_dataset(f)
-            self.get_screen_names.append(name)
+            self.screen_names.append(name)
             self.screens[name] = data
 
             self.substrates[name] = substrates
@@ -33,7 +33,6 @@ class SubstrateDatabase(object):
             unique_proteases.update(proteases)
         self.screen_substrates = list(unique_substrates)
         self.screen_proteases = list(unique_proteases)
-        names = self.get_screen_names
 
         # load sequence information
         sequence_info = self.load_sequence_info(sequence_file)
@@ -46,7 +45,6 @@ class SubstrateDatabase(object):
 
         # Summarize screen metadata - uncomment if we decide that this would always be worth running
         # self.summary_df = self.summarize_screen(names)
-
 
     def load_dataset(self, file_path, z_score=True):
         """ Load dataset from a csv file
@@ -113,14 +111,14 @@ class SubstrateDatabase(object):
 
         return seq_data
 
-    # def get_screen_names(self): # idk why the getter wasnt working, but could change
-    #     """ Get names for different screens
-    #
-    #     Returns:
-    #         screen_names (list, str): names of screens incorporated in query
-    #     """
-    #     return self.screen_names
+    def get_screen_names(self):
+        """ Get the names of the screens in the database
 
+        Returns:
+            (list, str): screen names present in the database
+        """
+        return self.screen_names
+        
     def get_screen_substrates(self, screen_name):
         """ Get all the substrates from a particular screen.
 
@@ -128,8 +126,7 @@ class SubstrateDatabase(object):
             screen_name (str): the screen of interest.
 
         Returns:
-            screen_substrates (list, str): substrate token names from screen of
-                interest
+            (list, str): substrate token names from screen of interest
         """
         return self.substrates[screen_name]
 
@@ -140,8 +137,7 @@ class SubstrateDatabase(object):
             screen_name (str): the screen of interest.
 
         Returns:
-            screen_proteases (list, str): protease token names from screen of
-                interest
+            (list, str): protease token names from screen of interest
         """
         return self.proteases[screen_name]
 
@@ -152,7 +148,7 @@ class SubstrateDatabase(object):
             screen_name (str): the screen of interest.
 
         Returns:
-            screen_df (df): data from screen of interest
+            (df): data from screen of interest
         """
         return self.screens[screen_name]
 
@@ -419,4 +415,3 @@ class SubstrateDatabase(object):
         ax2.set(title='# Proteases/Screen', xlabel='Screen', ylabel='# Proteases')
 
         return summary_df
-
