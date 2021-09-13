@@ -148,8 +148,8 @@ else: # Binary classification with k fold cross validation
                 paa.vis.plot_kfold_roc(tprs_test, aucs_test,
                     args.save_dir, save_name_test, show_sd=True)
 
-            # Recursive feature elimination analysis ONLY with rf, lr, linear svm
-            if classifier == "svm" and kernel != "linear":
+            # recursive feature elimination -- ONLY with rf, lr, svm linear!
+            if classifier == 'svm' and kernel != 'linear':
                 break
-            paa.classify.recursive_feature_elimination(X, Y,
-                classifier, kernel, args.num_folds, args.save_dir, save_name_val)
+            paa.classify.rfe_cv(X, Y, classifier, kernel, args.num_folds,
+                args.save_dir, save_name_val)
