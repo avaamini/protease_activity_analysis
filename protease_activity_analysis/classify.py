@@ -287,8 +287,7 @@ def classify(classifier, X, Y, pos_class):
 
     return prob, score, preds, interp_tpr, auc
 
-def rfe_cv(X, Y, class_type, kernel, k_splits, out_path, save_name,
-    standard_scale=False):
+def rfe_cv(X, Y, class_type, k_splits, out_path, save_name, standard_scale=False):
     """ Recursive feature elimination. Evaluate the accuracy of the model with
     select number of features and plot # of features vs. accuracy.
 
@@ -297,8 +296,8 @@ def rfe_cv(X, Y, class_type, kernel, k_splits, out_path, save_name,
             number of features. Includes samples for both train/test.
         Y: true labels (n x j), where n is the number of samples and j is the
             number of classes. Includes labels for both train/test.
-        class_type ("svm", "rf", "lr"): type of classifier
-        kernel ("linear", "poly", "rbf"): type of kernel for svm
+        class_type ("svm", "rf", "lr"): type of classifier. for SVM, uses linear
+            kernel
         k_splits: number of splits for cross validation
         out_path: path to save file
         save_name (str): string token for file saving
@@ -307,7 +306,7 @@ def rfe_cv(X, Y, class_type, kernel, k_splits, out_path, save_name,
     """
 
     if class_type == "svm": # support vector machine with kernel
-        classifier = svm.SVC(kernel=kernel, probability=True)
+        classifier = svm.SVC(kernel='linear', probability=True)
     elif class_type == "rf": # random forest classifier
         classifier = ensemble.RandomForestClassifier(max_depth=2)
     elif class_type == "lr": # logistic regression with L2 loss
@@ -360,8 +359,10 @@ def rfe_cv(X, Y, class_type, kernel, k_splits, out_path, save_name,
         res_aucs.append(aucs)
         names.append(name)
 
-        print('>%s Accuracy: %.3f (%.3f)' % (name, np.mean(res_accuracies), np.std(res_accuracies)))
-        print('>%s AUC: %.3f (%.3f)' % (name, np.mean(res_aucs), np.std(res_aucs)))
+        print('>%s Accuracy: %.3f (%.3f)' % (
+            name, np.mean(res_accuracies), np.std(res_accuracies)))
+        print('>%s AUC: %.3f (%.3f)' % (
+            name, np.mean(res_aucs), np.std(res_aucs)))
 
     # Plot num features vs. accracy/auc
     fig, ax = plt.subplots()

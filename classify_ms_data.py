@@ -151,5 +151,5 @@ else: # Binary classification with k fold cross validation
             # recursive feature elimination -- ONLY with rf, lr, svm linear!
             if classifier == 'svm' and kernel != 'linear':
                 break
-            paa.classify.rfe_cv(X, Y, classifier, kernel, args.num_folds,
+            paa.classify.rfe_cv(X, Y, classifier, args.num_folds,
                 args.save_dir, save_name_val)
