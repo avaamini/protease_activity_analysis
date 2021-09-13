@@ -6,3 +6,5 @@ from . import search
 from . import parsing
 from . import kinetic
 from . import database
+from . import substrate
+from . import protease

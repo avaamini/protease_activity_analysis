@@ -5,15 +5,19 @@ import numpy as np
 import seaborn as sns
 import pickle
 import os
+import protease_activity_analysis as paa
+from colorama import init, Fore, Back, Style
 
 class SubstrateDatabase(object):
 
-    def __init__(self, data_files, sequence_file, names_file=None):
+    def __init__(self, data_files, sequence_file, names_file=None, aa_dict_file=None):
         self.screens = {}
         self.file_list = data_files
 
         self.substrates = {}
         self.proteases = {}
+        self.kmer_dict = {}
+        self.kmer_overlap = {}
 
         self.screen_names = []
 
@@ -42,6 +46,10 @@ class SubstrateDatabase(object):
         # Mapping of sequence names to alternative names/descriptors
         name_mapping = self.load_substrate_names(names_file)
         self.name_map = name_mapping
+
+        # Mapping of AA one-letter code to RasMol color
+        aa_d = self.load_aa_dict(aa_dict_file)
+        self.aa_dict = aa_d
 
         # Summarize screen metadata - uncomment if we decide that this would always be worth running
         # self.summary_df = self.summarize_screen(names)
@@ -86,6 +94,19 @@ class SubstrateDatabase(object):
         f = open(names_file, 'rb')
         return pickle.load(f)
 
+    def load_aa_dict(self, aa_dict_file):
+        """ Mapping of AA one-letter code to RasMol color
+
+        Args:
+            aa_dict_file (pkl): contains mapping of AA one-letter code to RasMol color
+
+        Returns:
+            aa_dict (dictionary): AA / color mapping
+
+        """
+        f = open(aa_dict_file, 'rb')
+        return pickle.load(f)
+
     def set_substrate_dict(self, substrate_dict):
         """ Set the database's substrate descriptor mapping
         """
@@ -111,6 +132,7 @@ class SubstrateDatabase(object):
 
         return seq_data
 
+    # get_Screen_names broken --> doesnt return a lit but self.screen_names does
     def get_screen_names(self):
         """ Get the names of the screens in the database
 
@@ -190,6 +212,32 @@ class SubstrateDatabase(object):
         seq = name_data['Sequence'].to_list()[0]
 
         return seq
+
+    def get_kmer_dict(self, k):
+        """ Get kmer_dict
+        Args:
+            k (int): k of interest
+        Returns:
+            (dict): kmer_dict
+        """
+        if k in self.kmer_dict.keys():
+            return self.kmer_dict[k]
+        else:
+            print('No kmer_dict with key ' + str(k) + ' stored. Please use run_kmer_analysis() with said k prior to '
+                                                      'calling this function')
+
+    def get_kmer_overlap(self, k):
+        """ Get kmer_overlap
+        Args:
+            k (int): k of interest
+        Returns:
+            (dict): kmer_overlap
+        """
+        if k in self.kmer_overlap.keys():
+            return self.kmer_overlap[k]
+        else:
+            print('No kmer_overlap with key ' + str(k) + ' stored. Please use run_kmer_analysis() with said k prior to '
+                                                         'calling this function')
 
     def search_protease(self, protease, out_dir=None, z_threshold=None):
         """ Return df of substrates and their cleavage by a given protease
@@ -347,12 +395,21 @@ class SubstrateDatabase(object):
             screen_data.sort_values(by='Scores', ascending=False, inplace=True)
 
             top_k_screen = pd.DataFrame(screen_data[:top_k])
-            top_k_screen.loc[:,'Source'] = screen
+            top_k_screen.loc[:, 'Source'] = screen
             individual_dfs.append(top_k_screen)
 
             top_k_screen_names = list(top_k_screen.index)
             print(f"Top hits for {query} in {screen}:")
-            print(*top_k_screen_names, sep="\n")
+            if query_type == 'protease':
+                for name in top_k_screen_names:
+                    print(name + ' : ' + paa.substrate.color_seq(ex_sub=self.get_sequence_of_name(name),
+                                                                 all_natural=
+                                                                 self.database[self.database['Name'] == name][
+                                                                     'Composition'].to_list() == ['Natural'],
+                                                                 aa_dict=self.aa_dict))
+                    print(Style.RESET_ALL)
+            else:
+                print(*top_k_screen_names, sep="\n")
 
         top_k_individual = pd.concat(individual_dfs)
 
@@ -402,16 +459,206 @@ class SubstrateDatabase(object):
         Args:
             names (list, str): screen names
         """
-        col_summary_df = ['Screen', '# Peptides', '# Proteases']
-        summary_df = pd.DataFrame(columns=col_summary_df)
+        col_summary_df = ['Screen', '# Peptides', '# Proteases', 'Metallo', 'Aspartic', 'Cysteine', 'Serine']
+        summary_df = pd.DataFrame(columns=col_summary_df, index=np.arange(len(names)))
 
         for i in np.arange(len(names)):
             key = names[i]
-            summary_df.loc[i] = [key, len(self.substrates[key]), len(self.proteases[key])]
+            spec_temp = self.get_protease_class(names[i])
+            summary_df.iloc[i, 3] = spec_temp[spec_temp['Class'] == 'Metallo'].shape[0]
+            summary_df.iloc[i, 4] = spec_temp[spec_temp['Class'] == 'Aspartic'].shape[0]
+            summary_df.iloc[i, 5] = spec_temp[spec_temp['Class'] == 'Cysteine'].shape[0]
+            summary_df.iloc[i, 6] = spec_temp[spec_temp['Class'] == 'Serine'].shape[0]
+            summary_df.loc[i, 0:3] = [key, len(self.substrates[key]), len(self.proteases[key])]
 
         ax1 = summary_df.plot.bar(x='Screen', y='# Peptides', rot=0, color='blue')
-        ax1.set(title = '# Peptides/Screen', xlabel = 'Screen', ylabel = '# Peptides')
-        ax2 = summary_df.plot.bar(x='Screen', y='# Proteases', rot=0, color='green')
-        ax2.set(title='# Proteases/Screen', xlabel='Screen', ylabel='# Proteases')
+        ax1.set(title='# Peptides/Screen', xlabel='Screen', ylabel='# Peptides')
 
+        labels = names
+        metallo_f = summary_df['Metallo']
+        aspartic_f = summary_df['Aspartic']
+        cysteine_f = summary_df['Cysteine']
+        serine_f = summary_df['Serine']
+
+        fig, ax = plt.subplots()
+
+        ax.bar(labels, cysteine_f, label='Cysteine', color='b')
+        ax.bar(labels, aspartic_f, bottom=cysteine_f, label='Aspartic', color='k')
+        ax.bar(labels, serine_f, bottom=cysteine_f + aspartic_f, label='Serine', color='orange')
+        ax.bar(labels, metallo_f, bottom=cysteine_f + aspartic_f + serine_f, label='Metallo', color='g')
+
+        ax.set_ylabel('Frequency')
+        ax.set_title('#Proteases/screen by class')
+        ax.legend()
+
+        plt.show()
         return summary_df
+
+    def run_kmer_analysis(self, k_mer_list):
+        """ First filters for natural substrates onlt and then generates dictionaries cantaining all kmers of lengths of interest and finds peptides containgn overlapping kmers in the dataset
+            Args:
+                k_mer_list (list, int): kmer lengths of interest to query
+            Returns:
+
+        """
+        # Filter for natural substrates only
+        natural = self.database[self.database['Composition'] == 'Natural']
+        # print(natural)
+
+        # Run generate_kmer function for all peptides in PAA for all kmer lengths of interest
+        subs = natural.iloc[:, 0].to_list()  # First column to be most generalizable must contain substrate names
+        seqs = natural['Sequence'].to_list()
+
+        for k in k_mer_list:
+            self.kmer_dict[k] = paa.substrate.generate_kmers(subs, seqs, k)
+
+        # Populate kmer_overlap dictionaries
+        for k in k_mer_list:
+            print('For k=', k)
+            self.kmer_overlap[k] = paa.substrate.find_overlap(self.kmer_dict[k])
+
+    def search_kmer(self, kmer_q, all_natural, aa_dict):
+        """ Returns substrates in database containing kmer of interest
+            Args:
+                kmer_q (str): kmer to query
+                all_natural (bool): if True color-code, if False return regular sequence
+                aa_dict (dictionary): aa dictionary with color scheme to use for each one-letter AA
+            Returns:
+                df (pandas df): dataframe containing AA
+        """
+        kmer_len = len(kmer_q)
+
+        #     f = open('data/screens/PAA/kmer_analyses/kmer_'+str(kmer_len)+'_paa.pickle', 'rb')
+        #     kmer_dict_q = pickle.load(f)
+
+        if kmer_len in self.kmer_overlap.keys():
+            kmer_dict_q = self.kmer_overlap[kmer_len]
+
+            keys_q = kmer_dict_q.keys()
+
+            if kmer_q in keys_q:
+                subs_q = kmer_dict_q[kmer_q]
+
+                seqs_q = []
+                for seq in subs_q:
+                    seqs_q.append(self.get_sequence_of_name(seq))
+                    print(seq + ':' + paa.substrate.color_seq(self.get_sequence_of_name(seq), all_natural, aa_dict))
+                    print(Style.RESET_ALL)
+                df = pd.DataFrame(index=np.arange(len(subs_q)))
+                df['Peptide'] = subs_q
+                df['Sequence'] = seqs_q
+
+            else:
+                print('K-mer not in dataset, please enter some other k-mer')
+                df = None
+        else:
+            print('No information for kmer of length ' + str(
+                kmer_len) + ' stored. Please use run_kmer_analysis() with said k prior to '
+                            'calling this function')
+            df = None
+
+        return df
+
+    def find_similar_substrates(self, seq, all_natural, metric, top_k):
+        """ Compute similarity between the sequence of interest and substrates in teh database
+            Args:
+                seq (str): AA sequence of interest
+                all_natural (bool): if True color-code, if False return regular sequence
+                metric (str): similarity metric to sort by. 2 options: 'Similarity Ratio' or 'Partial Similarity Ratio'
+                top_k (int): top_k most similar sequences to print
+            Returns:
+                sim_m_sorted (pandas df): df of all sequences in the database and their similarity to the sequence of interest
+        """
+        sim_m = self.database.copy()
+        sim_m = sim_m.iloc[:, 0:3]
+        sim_m['Similarity Ratio'] = sim_m.apply(lambda row: paa.substrate.similarity(seq, row['Sequence'])[0], axis=1)
+        sim_m['Partial Similarity Ratio'] = sim_m.apply(lambda row: paa.substrate.similarity(seq, row['Sequence'])[1],
+                                                        axis=1)
+        sim_m_sorted = sim_m.sort_values(by=[metric], ascending=False)
+
+        print('Queried seq:')
+        print(paa.substrate.color_seq(seq, all_natural, self.aa_dict))
+        print(Style.RESET_ALL)
+
+        top_k = sim_m_sorted.iloc[:top_k, :]
+        for i in np.arange(top_k.shape[0]):
+            print(top_k['Name'].iloc[i] + ':' + paa.substrate.color_seq(top_k['Sequence'].iloc[i],
+                                                          top_k['Composition'].iloc[i] == 'Natural', self.aa_dict))
+            print(Style.RESET_ALL)
+
+        return sim_m_sorted, top_k
+
+    def get_similarity_matrix(self):
+        """ Calculate pairwise similarity between all substartes in subs_list and return similarity matrix
+            Args:
+                subs_list (list, str): list containing all names of substrates of interest
+                seqs_list (list, str): list containing their corresponding sequences
+            Returns:
+                sim_m (pandas df): df of all subs_list x subs_list containig pairwise Levenshtein distance similarity ratio (Ratio)
+                sim_par_m (pandas df): df of all subs_list x subs_list containig pairwise Partial Levenshtein distance similarity ratio (Ratio)
+        """
+        subs_list = self.database.iloc[:, 0].to_list()
+        seqs_list = self.database['Sequence'].to_list()
+        sim_m = pd.DataFrame(index=subs_list, columns=subs_list)
+        sim_par_m = pd.DataFrame(index=subs_list, columns=subs_list)
+
+        j = 0
+        for j in np.arange(len(subs_list)):
+            for i in np.arange(len(subs_list)):
+                Str1 = seqs_list[j]
+                Str2 = seqs_list[i]
+                sim_m.iloc[j, i] = paa.substrate.similarity(Str1, Str2)[0]
+                sim_par_m.iloc[j, i] = paa.substrate.similarity(Str1, Str2)[1]
+
+            j = j + 1
+
+        # Plot clustermap of similarity scores
+        sim_m = sim_m.astype(float)
+        sim_par_m = sim_par_m.astype(float)
+
+        plt.figure()
+        cluster_grid_sim_m = sns.clustermap(sim_m)
+        plt.title('Levenschtein Similarity Ratio', fontsize=16)
+
+        plt.figure()
+        cluster_grid_sim_par_m = sns.clustermap(sim_par_m)
+        plt.title('Partial Levenschtein Similarity Ratio', fontsize=16)
+
+        return sim_m, sim_par_m
+
+    def summarize_kmer(self, kmer_len, top_k):
+        """ Summarize kmer_overlap data
+            Args:
+                kmer_len (dictionary): kmer_length to summarize
+                top_k (int): top_k kmers to display
+            Returns:
+                kmer_f_sorted (pandas df): dataframe containing sorted kmers by their frequency
+                kmer_f_        sorted_filtered (pandas df): dataframe containing top_k sorted kmers by their frequency
+        """
+        kmer_overlap_q = self.get_kmer_overlap(kmer_len)
+        kmer_f_list = []
+        for key in kmer_overlap_q.keys():
+            kmer_f_list.append(len(kmer_overlap_q[key]))
+
+        kmer_f = pd.DataFrame(index=kmer_overlap_q.keys())
+        kmer_f['Frequency'] = kmer_f_list
+        kmer_f_sorted = kmer_f.sort_values(by=['Frequency'], ascending=False)
+        kmer_f_sorted_filtered = kmer_f_sorted.iloc[:top_k, :]
+
+        hist = kmer_f_sorted.hist(bins=np.max(np.max(kmer_f_sorted['Frequency'])))
+
+        return kmer_f_sorted, kmer_f_sorted_filtered
+
+    def get_protease_class(self, screen_name):
+        """ Get class of proteases in a screen
+        Args:
+             screen_name (str): screen name to look up protease class of
+        Returns:
+            protease_class_dict (dictionary): dictionary with protease class of each prtoease in the screen
+        """
+        prot = self.get_screen_proteases(screen_name)
+        protease_class_dict = pd.DataFrame(data={'Protease': prot}, index=np.arange(len(prot)))
+        protease_class_dict['Class'] = protease_class_dict.apply(
+            lambda row: paa.protease.classify_protease(row['Protease']), axis=1)
+
+        return protease_class_dict
