@@ -15,12 +15,15 @@ class SubstrateDatabase(object):
         self.substrates = {}
         self.proteases = {}
 
+        self.screen_names = []
+
         unique_substrates = set()
         unique_proteases = set()
 
         for f in data_files:
 
             data, name, substrates, proteases = self.load_dataset(f)
+            self.screen_names.append(name)
             self.screens[name] = data
 
             self.substrates[name] = substrates
@@ -39,6 +42,9 @@ class SubstrateDatabase(object):
         # Mapping of sequence names to alternative names/descriptors
         name_mapping = self.load_substrate_names(names_file)
         self.name_map = name_mapping
+
+        # Summarize screen metadata - uncomment if we decide that this would always be worth running
+        # self.summary_df = self.summarize_screen(names)
 
     def load_dataset(self, file_path, z_score=True):
         """ Load dataset from a csv file
@@ -105,6 +111,14 @@ class SubstrateDatabase(object):
 
         return seq_data
 
+    def get_screen_names(self):
+        """ Get the names of the screens in the database
+
+        Returns:
+            (list, str): screen names present in the database
+        """
+        return self.screen_names
+        
     def get_screen_substrates(self, screen_name):
         """ Get all the substrates from a particular screen.
 
@@ -112,8 +126,7 @@ class SubstrateDatabase(object):
             screen_name (str): the screen of interest.
 
         Returns:
-            screen_substrates (list, str): substrate token names from screen of
-                interest
+            (list, str): substrate token names from screen of interest
         """
         return self.substrates[screen_name]
 
@@ -124,8 +137,7 @@ class SubstrateDatabase(object):
             screen_name (str): the screen of interest.
 
         Returns:
-            screen_proteases (list, str): protease token names from screen of
-                interest
+            (list, str): protease token names from screen of interest
         """
         return self.proteases[screen_name]
 
@@ -136,11 +148,11 @@ class SubstrateDatabase(object):
             screen_name (str): the screen of interest.
 
         Returns:
-            screen_df (df): data from screen of interest
+            (df): data from screen of interest
         """
         return self.screens[screen_name]
 
-    def get_sequence_names(self, sequence):
+    def get_name_of_sequence(self, sequence):
         """ Get the substrate names for a sequence of interest.
 
         Args:
@@ -158,6 +170,26 @@ class SubstrateDatabase(object):
         all_names = sequence_data['Names']
         alt_names = [x for x in all_names if x != 'nan']
         return name, all_names
+
+    def get_sequence_of_name(self, name):
+        """ Get the sequence for a substrate of interest.
+
+        Args:
+            name (str): name of substrate of interest.
+
+        Returns:
+            sequence (str): sequence for the name
+        """
+        name_data = self.database.loc[self.database['Name'] == name]
+
+        if name_data.empty:
+            name_data = self.database.loc[self.database['Name'] == self.get_unified_name(name)]
+            if name_data.empty:
+                raise ValueError("Substrate not found in database. Please try again.")
+
+        seq = name_data['Sequence'].to_list()[0]
+
+        return seq
 
     def search_protease(self, protease, out_dir=None, z_threshold=None):
         """ Return df of substrates and their cleavage by a given protease
@@ -278,7 +310,7 @@ class SubstrateDatabase(object):
             protease_cleavage_df (pandas df): zscores for substrate against all
                 proteases found in the screen datasets
         """
-        seq_name, seq_alt_names = self.get_sequence_names(sequence)
+        seq_name, seq_alt_names = self.get_name_of_sequence(sequence)
 
         # search for the sequence in the database
         seq_cleavage_df = self.search_substrate(seq_name, out_dir, z_threshold)
@@ -363,3 +395,23 @@ class SubstrateDatabase(object):
             df (pandas df): data matrix with cleavage data of interest
         """
         return
+
+    def summarize_screen(self, names):
+        """ Summarize metadata from the different screens
+
+        Args:
+            names (list, str): screen names
+        """
+        col_summary_df = ['Screen', '# Peptides', '# Proteases']
+        summary_df = pd.DataFrame(columns=col_summary_df)
+
+        for i in np.arange(len(names)):
+            key = names[i]
+            summary_df.loc[i] = [key, len(self.substrates[key]), len(self.proteases[key])]
+
+        ax1 = summary_df.plot.bar(x='Screen', y='# Peptides', rot=0, color='blue')
+        ax1.set(title = '# Peptides/Screen', xlabel = 'Screen', ylabel = '# Peptides')
+        ax2 = summary_df.plot.bar(x='Screen', y='# Proteases', rot=0, color='green')
+        ax2.set(title='# Proteases/Screen', xlabel='Screen', ylabel='# Proteases')
+
+        return summary_df

@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+import plotnine
 
 from matplotlib.patches import Ellipse
 from sklearn import svm, model_selection, metrics, ensemble
@@ -433,3 +434,41 @@ def plot_heatmap(data_matrix, out_path, sample_label, row_colors,
     plt.close()
 
     return heat
+
+def aggregate_data(data_in_paths, axis=1, out_path):
+    """ Combine multiple datasets into single data matrix.
+
+    Args:
+        data_in_paths (list of strings): path for datafiles
+        axis (boolean): axes of concatenation, with True/1 as grouping
+        by common substrates (horizontal) and False/0 as grouping by common
+        sample names (vertical)
+        file_name: desired name for csv file of aggregated data
+        out_path (str): path to store the results
+
+    Returns:
+        data_matrix (pandas.DataFrame): combined data matrix
+
+    """
+
+    # create variables to store the compiled data/name
+    frame = []
+    agg_name = 'Agg_'
+
+    for file_path in data_in_paths:
+        # create pandas dataframe for each datafile
+        data = pd.read_csv(file_path)
+        # identify original file name
+        file_name = os.path.basename(file_path).split('.csv')[0]
+
+        frame.append(data)
+        agg_name = agg_name + "_" + file_name
+
+    # combine individual dataframes from each file into single dataframe
+    agg_df = pd.concat(frame, axis=axis)
+    agg_name = agg_name + '.csv'
+
+    # personally have issue with Errno13 "Permission denied" but should work otherwise
+    agg_df.to_csv(out_path, agg_name)
+
+    return agg_df
