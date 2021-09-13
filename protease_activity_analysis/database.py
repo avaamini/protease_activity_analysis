@@ -187,7 +187,7 @@ class SubstrateDatabase(object):
             if name_data.empty:
                 raise ValueError("Substrate not found in database. Please try again.")
 
-        seq = name_data['Sequence']
+        seq = name_data['Sequence'].to_list()[0]
 
         return seq
 

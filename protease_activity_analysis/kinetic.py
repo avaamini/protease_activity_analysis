@@ -11,6 +11,7 @@ import matplotlib.font_manager as fm
 
 from adjustText import adjust_text
 
+
 class KineticDataset:
     """ Dataset of kinetic protease activity measurements. """
     def __init__(self, data_path, fc_time, linear_time, out_dir, blank=0):
