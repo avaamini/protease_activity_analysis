@@ -436,7 +436,7 @@ def plot_heatmap(data_matrix, out_path, sample_label, row_colors,
 
     return heat
 
-<<<<<<< HEAD
+#<<<<<<< HEAD
 ##def aggregate_data(data_in_paths, axis=1, out_path):
 ##    """ Combine multiple datasets into single data matrix.
 ##
@@ -474,7 +474,8 @@ def plot_heatmap(data_matrix, out_path, sample_label, row_colors,
 ##    agg_df.to_csv(out_path, agg_name)
 ##
 ##    return agg_df
-=======
+#=======
+
 def aggregate_data(data_in_paths, out_path, axis=1):
     """ Combine multiple datasets into single data matrix.
 
@@ -596,4 +597,4 @@ def specificity_analysis(data_matrix, out_path, threshold=1):
         plt.close()
 
         return
->>>>>>> cc07acdf0e71e54eb072a4016e588f05f4feffbb
+#>>>>>>> cc07acdf0e71e54eb072a4016e588f05f4feffbb

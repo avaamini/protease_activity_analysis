@@ -347,7 +347,7 @@ def rfe_cv(X, Y, class_type, k_splits, out_path, save_name, standard_scale=False
             model, X, Y, scoring='roc_auc', cv=cv, error_score='raise'
         )
         return accuracies, aucs
-
+    
     # evaluate the models and store results
     res_accuracies, res_aucs, names = list(), list(), list()
     num_features = X.shape[1]
