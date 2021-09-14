@@ -9,6 +9,7 @@ import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import plotnine
+from sklearn import preprocessing
 
 from matplotlib.patches import Ellipse
 from sklearn import svm, model_selection, metrics, ensemble
@@ -435,6 +436,7 @@ def plot_heatmap(data_matrix, out_path, sample_label, row_colors,
 
     return heat
 
+<<<<<<< HEAD
 ##def aggregate_data(data_in_paths, axis=1, out_path):
 ##    """ Combine multiple datasets into single data matrix.
 ##
@@ -472,3 +474,126 @@ def plot_heatmap(data_matrix, out_path, sample_label, row_colors,
 ##    agg_df.to_csv(out_path, agg_name)
 ##
 ##    return agg_df
+=======
+def aggregate_data(data_in_paths, out_path, axis=1):
+    """ Combine multiple datasets into single data matrix.
+
+    Args:
+        data_in_paths (list of strings): path for datafiles
+        out_path (str): path to store the results
+        axis (boolean): axes of concatenation, with True/1 as grouping
+            by common substrates (horizontal) and False/0 as grouping by common
+            sample names (vertical)
+
+    Returns:
+        data_matrix (pandas.DataFrame): combined data matrix
+    """
+
+    # create variables to store the compiled data/name
+    frame = []
+    agg_name = 'Agg_'
+
+    for file_path in data_in_paths:
+        print(file_path)
+        # create pandas dataframe for each datafile
+        data = pd.read_csv(file_path)
+        # identify original file name
+        file_name = os.path.basename(file_path).split('.csv')[0]
+
+        frame.append(data)
+        agg_name = agg_name + "_" + file_name
+
+    # combine individual dataframes from each file into single dataframe
+    agg_df = pd.concat(frame, axis=axis)
+    agg_name = agg_name + '.csv'
+
+    # export aggregated dataframe as csv file
+    data_save_path = os.path.join(out_path, f"{agg_name}.csv")
+    agg_df.to_csv(data_save_path)
+
+    return agg_df
+
+# remove substrate if there is negative cleavage rate across all samples
+def process_data(data_matrix):
+    """ TO DO
+
+    Args:
+
+
+    Returns:
+
+    """
+    dropping = []
+    for ind in data_matrix.index:
+        if all(x < 0 for x in data_matrix.loc[ind]):
+            dropping.append(ind)
+
+    return dropping
+
+def scale_data(data_matrix):
+    """ TO DO
+
+    Args:
+
+
+    Returns:
+
+    """
+    # Create Scaler object
+    scaler = preprocessing.StandardScaler()
+    # Fit data on the scaler object
+    scaled_data = scaler.fit_transform(data_matrix)
+    scaled_data = pd.DataFrame(scaled_data, columns=data_matrix.columns,
+                               index=data_matrix.index)
+
+    return scaled_data
+
+def specificity_analysis(data_matrix, out_path, threshold=1):
+    """ Plots tissue specificity versus cleavage efficiency
+
+    Args:
+        data_matrix (pandas dataframe): dataframe of tissue sample across
+            columns and substrate across rows; requires unscaled data..
+        out_path (str): path to store the results
+        threshold (float): z-scores above this threshold will be labeled on plot
+    """
+
+    # remove negative cleavage rates
+    dropping = process_data(data_matrix)
+    data = data_matrix.drop(index=dropping)
+
+    # z-score by column (tissue sample/condition, cleavage efficency)
+    cl_z = scale_data(data)
+
+    # z-score by row (probe, substrate specificity)
+    dataT = data.transpose()
+    dataT = scale_data(dataT)
+    sp_z = dataT.transpose()
+
+    # number of samples
+    n = data.shape[1]
+
+    # plot for each sample
+    for i in range(n):
+        x = cl_z.iloc[:,i]
+        y = sp_z.iloc[:,i]
+
+        plt.figure()
+        plt.scatter(x,y, s=30)
+        plt.xlabel('Cleavage efficiency')
+        plt.ylabel('Specificity')
+        plt.title(data.columns[i])
+        plt.tight_layout()
+
+        labels = data.index
+        for j, txt in enumerate(labels):
+            # TO DO: could change threshold to be different between x and y
+            if x[j] > threshold or y[j] > threshold:
+                plt.annotate(txt, (x[j], y[j]), fontsize=12)
+
+        plt.savefig(os.path.join(out_path, 'specificity_analysis for ' +
+                                 str(data.columns[i]) + '.png'))
+        plt.close()
+
+        return
+>>>>>>> cc07acdf0e71e54eb072a4016e588f05f4feffbb
