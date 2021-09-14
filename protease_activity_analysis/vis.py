@@ -9,6 +9,7 @@ import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import plotnine
+from sklearn import preprocessing
 
 from matplotlib.patches import Ellipse
 from sklearn import svm, model_selection, metrics, ensemble
@@ -435,15 +436,15 @@ def plot_heatmap(data_matrix, out_path, sample_label, row_colors,
 
     return heat
 
-def aggregate_data(data_in_paths, axis=1, out_path):
+def aggregate_data(data_in_paths, out_path, axis=1):
     """ Combine multiple datasets into single data matrix.
 
     Args:
         data_in_paths (list of strings): path for datafiles
+        out_path (str): path to store the results
         axis (boolean): axes of concatenation, with True/1 as grouping
             by common substrates (horizontal) and False/0 as grouping by common
             sample names (vertical)
-        out_path (str): path to store the results
 
     Returns:
         data_matrix (pandas.DataFrame): combined data matrix
@@ -454,6 +455,7 @@ def aggregate_data(data_in_paths, axis=1, out_path):
     agg_name = 'Agg_'
 
     for file_path in data_in_paths:
+        print(file_path)
         # create pandas dataframe for each datafile
         data = pd.read_csv(file_path)
         # identify original file name
@@ -512,7 +514,7 @@ def specificity_analysis(data_matrix, out_path, threshold=1):
 
     Args:
         data_matrix (pandas dataframe): dataframe of tissue sample across
-            columns and substrate across rows
+            columns and substrate across rows; requires unscaled data..
         out_path (str): path to store the results
         threshold (float): z-scores above this threshold will be labeled on plot
     """
