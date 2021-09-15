@@ -436,46 +436,6 @@ def plot_heatmap(data_matrix, out_path, sample_label, row_colors,
 
     return heat
 
-#<<<<<<< HEAD
-##def aggregate_data(data_in_paths, axis=1, out_path):
-##    """ Combine multiple datasets into single data matrix.
-##
-##    Args:
-##        data_in_paths (list of strings): path for datafiles
-##        axis (boolean): axes of concatenation, with True/1 as grouping
-##        by common substrates (horizontal) and False/0 as grouping by common
-##        sample names (vertical)
-##        file_name: desired name for csv file of aggregated data
-##        out_path (str): path to store the results
-##
-##    Returns:
-##        data_matrix (pandas.DataFrame): combined data matrix
-##
-##    """
-##
-##    # create variables to store the compiled data/name
-##    frame = []
-##    agg_name = 'Agg_'
-##
-##    for file_path in data_in_paths:
-##        # create pandas dataframe for each datafile
-##        data = pd.read_csv(file_path)
-##        # identify original file name
-##        file_name = os.path.basename(file_path).split('.csv')[0]
-##
-##        frame.append(data)
-##        agg_name = agg_name + "_" + file_name
-##
-##    # combine individual dataframes from each file into single dataframe
-##    agg_df = pd.concat(frame, axis=axis)
-##    agg_name = agg_name + '.csv'
-##
-##    # personally have issue with Errno13 "Permission denied" but should work otherwise
-##    agg_df.to_csv(out_path, agg_name)
-##
-##    return agg_df
-#=======
-
 def aggregate_data(data_in_paths, out_path, axis=1):
     """ Combine multiple datasets into single data matrix.
 
@@ -492,21 +452,21 @@ def aggregate_data(data_in_paths, out_path, axis=1):
 
     # create variables to store the compiled data/name
     frame = []
-    agg_name = 'Agg_'
+    agg_name = 'Agg'
 
     for file_path in data_in_paths:
-        print(file_path)
-        # create pandas dataframe for each datafile
-        data = pd.read_csv(file_path)
         # identify original file name
         file_name = os.path.basename(file_path).split('.csv')[0]
+        # create pandas dataframe for each datafile
+        data = pd.read_csv(file_path, index_col=0, names=['',file_name])
+        # remove first row (remnants of incorrect column labels)
+        data = data.iloc[1:,:]
 
         frame.append(data)
         agg_name = agg_name + "_" + file_name
 
     # combine individual dataframes from each file into single dataframe
     agg_df = pd.concat(frame, axis=axis)
-    agg_name = agg_name + '.csv'
 
     # export aggregated dataframe as csv file
     data_save_path = os.path.join(out_path, f"{agg_name}.csv")
@@ -548,6 +508,97 @@ def scale_data(data_matrix):
                                index=data_matrix.index)
 
     return scaled_data
+
+# top n probes
+def top_n_probes(n, df, ind_dict):
+    """ Finds top n cleaved probes for each column (sample)
+
+    Args (TO DO):
+        data_matrix (pandas dataframe): dataframe of tissue sample across
+            columns and substrate across rows; requires unscaled data..
+        out_path (str): path to store the results
+        threshold (float): z-scores above this threshold will be labeled on plot
+    """
+
+    top_df = pd.DataFrame()
+
+    for c in df.columns:
+        sorted_args = [i[0] for i in sorted(enumerate(df[c]), key=lambda x:x[1], reverse=True)]
+
+        # take first n indices
+        top_df[c] = sorted_args[:n]
+
+        # convert to probe substrate name
+        top_probe_df = top_df.replace(ind_dict)
+
+    return top_probe_df
+
+# TO DO: generalize histogram distribution of z-scores (one plot per sample)
+
+
+def threshold_probes(th, df, ind_dict):
+    """ Ranks all cleaved probes above z-score threshold
+
+    Args (TO-DO):
+        data_matrix (pandas dataframe): dataframe of tissue sample across
+            columns and substrate across rows; requires unscaled data..
+        out_path (str): path to store the results
+        threshold (float): z-scores above this threshold will be labeled on plot
+    """
+    thresh_df = pd.DataFrame()
+
+    for c in df.columns:
+
+        # find indices where values greater than threshold
+        thr_ind = np.argwhere(np.array(df[c]) > th)
+        thr_ind = thr_ind.flatten()
+        # list values using indices
+        zvals = df.iloc[list(thr_ind)][c]
+        # sort indices from greatest to least
+        sorted_zvals = np.argsort(-zvals)
+        # find substrate names from ordered indices
+        sorted_labels = sorted_zvals.index[sorted_zvals]
+        thr_ind_df = pd.DataFrame(sorted_labels)
+        # account for different number of substrates greater than threshold in
+            # different tissues by concatenating
+        thresh_df = pd.concat([thresh_df, thr_ind_df], axis=1)
+
+    thresh_df.columns = df.columns
+    return thresh_df
+
+# thr_df: probe list dataframe (use thresholded probes dataframe)
+# dict_df: use xd dataframe (from earlier) as dictionary to convert probe name
+    # to inhibitor label
+def probe_class_proportion(thr_df, dict_df):
+    """ Plots pie charts of the proportions of classes that cleaved substrates
+    are in.
+
+    Args (TO-DO):
+        data_matrix (pandas dataframe): dataframe of tissue sample across
+            columns and substrate across rows; requires unscaled data..
+        out_path (str): path to store the results
+        threshold (float): z-scores above this threshold will be labeled on plot
+    """
+    # convert substrate name to dictionary classification
+    class_dict = dict_df.to_dict()
+    c_dict = class_dict['Specificity']
+    converted_df = thr_df.replace(c_dict)
+
+    for c in converted_df.columns:
+        # pull out given column
+        one_column = converted_df[c]
+        # drop any NaN values
+        one_column_noNaN = one_column.dropna()
+        # make all classifications consistently int values
+        one_column_int = one_column_noNaN.astype(int)
+        # count frequency of each classification
+        counts = one_column_int.value_counts()
+        # plot
+        plt.figure();
+        plt.pie(counts,labels=counts.index, autopct='%1.f%%');
+        plt.title(c)
+
+    return
 
 def specificity_analysis(data_matrix, out_path, threshold=1):
     """ Plots tissue specificity versus cleavage efficiency
@@ -597,4 +648,3 @@ def specificity_analysis(data_matrix, out_path, threshold=1):
         plt.close()
 
         return
-#>>>>>>> cc07acdf0e71e54eb072a4016e588f05f4feffbb

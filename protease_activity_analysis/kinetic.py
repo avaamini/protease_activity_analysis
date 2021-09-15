@@ -135,7 +135,7 @@ class KineticDataset:
     def write_csv(self, data_to_write, save_name):
         """ Write data of interest to CSV and save """
         data_save_path = os.path.join(self.save_dir,
-            f"{self.sample}_{save_name}.csv")
+            f"{self.sample_name}_{save_name}.csv")
         data_to_write.to_csv(data_save_path)
 
     def get_fc(self):
@@ -166,39 +166,40 @@ class KineticDataset:
         """ Getter for initial rate, z-scored """
         return self.initial_rate_zscore
 
-# def kinetic_visualization(data_path, col_dict, row_dict, out_dir):
-#     """ Visualizes protease activity data in different formats
-#
-#     Args:
-#         data_path (list of strings): directories of .csv files for each sample
-#             in a given screen with a single column with name of sample and rows
-#             corresponding to substrates screened. Requires building a pandas df
-#             from different inputs.
-#         col_dict (pandas df): labels that classify columns by some property
-#             (e.g. protease class for proteases in screen)
-#         row_dict (pandas df): labels that classify rows by some property
-#             (e.g. substrate by their protease susceptibility)
-#         out_dir (str): directory to save all outputs
-#
-#     Returns:
-#
-#     """
-#
-#     # Create data matrix from 1+ datafiles
-#     agg_df = paa.vis.aggregate_data(data_path)
-#
-#     # TO DO: Load name
-#     # screen_name =
-#
-#     # Create directory
-#     save_dir = os.path.join(out_dir, screen_name)
-#     if not os.path.exists(save_dir):
-#         os.makedirs(save_dir)
-#         print('Directory created', save_dir)
-#
-#     # Generate relevant outputs and plots
-#     paa.vis.plot_heatmap(agg_df)
-#     paa.vis.plot_correlation_matrix()
-#     paa.vis.plot_zscore_scatter()
-#     paa.vis.plot_zscore_hist()
-#     paa.vis.get_top_hits()
+def kinetic_visualization(data_path, screen_name, col_dict, row_dict, out_dir,
+                          process=True, scale=True):
+    """ Visualizes protease activity data in different formats
+
+    Args:
+        data_path (list of str): directories of .csv files for each sample
+            in a given screen with a single column with name of sample and rows
+            corresponding to substrates screened. Requires building a pandas df
+            from different inputs.
+        screen_name (str):
+        col_dict (pandas df): labels that classify columns by some property
+            (e.g. protease class for proteases in screen)
+        row_dict (pandas df): labels that classify rows by some property
+            (e.g. substrate by their protease susceptibility)
+        out_dir (str): directory to save all outputs
+        process (boolean):
+        scale (boolean):
+
+    Returns:
+
+    """
+
+    # Create data matrix from 1+ datafiles
+    agg_df = paa.vis.aggregate_data(data_path, out_dir)
+
+    # Process or scale data
+    if process:
+        dropping = process_data(data)
+        processed_data = data.drop(index=dropping)
+        dict_df = dict_df.drop(index=dropping)
+
+    # Generate relevant outputs and plots
+    paa.vis.plot_heatmap(agg_df)
+    paa.vis.plot_correlation_matrix()
+    paa.vis.plot_zscore_scatter()
+    paa.vis.plot_zscore_hist()
+    paa.vis.get_top_hits()

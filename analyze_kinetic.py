@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import protease_activity_analysis as paa
 import argparse
 
@@ -30,4 +31,9 @@ if __name__ == '__main__':
         kinetic_data = data.raw,
         title = data.sample_name,
         ylabel = 'RawIntensity'
+    )
+
+    data.write_csv(
+        data_to_write=data.fc_x,
+        save_name='fc'
     )
