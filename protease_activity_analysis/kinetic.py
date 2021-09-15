@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+import protease_activity_analysis as paa
 
 from adjustText import adjust_text
 
@@ -166,8 +167,9 @@ class KineticDataset:
         """ Getter for initial rate, z-scored """
         return self.initial_rate_zscore
 
-def kinetic_visualization(data_path, screen_name, col_dict, row_dict, out_dir,
-                          process=True, scale=True):
+# removed col_dict for simplicity
+def kinetic_visualization(data_path, screen_name, row_dict, out_dir,
+                          n=5, b=15, threshold=1, process=True):
     """ Visualizes protease activity data in different formats
 
     Args:
@@ -176,30 +178,42 @@ def kinetic_visualization(data_path, screen_name, col_dict, row_dict, out_dir,
             corresponding to substrates screened. Requires building a pandas df
             from different inputs.
         screen_name (str):
-        col_dict (pandas df): labels that classify columns by some property
-            (e.g. protease class for proteases in screen)
         row_dict (pandas df): labels that classify rows by some property
             (e.g. substrate by their protease susceptibility)
         out_dir (str): directory to save all outputs
         process (boolean):
-        scale (boolean):
-
-    Returns:
 
     """
 
     # Create data matrix from 1+ datafiles
     agg_df = paa.vis.aggregate_data(data_path, out_dir)
 
-    # Process or scale data
+    # remove non-cleaved substrates
     if process:
-        dropping = process_data(data)
-        processed_data = data.drop(index=dropping)
-        dict_df = dict_df.drop(index=dropping)
+        dropping = paa.vis.process_data(agg_df)
+        processed_data = agg_df.drop(index=dropping)
+        row_dict = row_dict.drop(index=dropping)
+    else:
+        processed_data = agg_df
+
+    # z-score data
+    scaled_data = paa.vis.scale_data(processed_data)
+    data_save_path = os.path.join(out_dir, screen_name+"_z_scored.csv")
+    scaled_data.to_csv(data_save_path, index=False)
+
+    ind_dict = pd.Series(scaled_data.index, index=range(scaled_data.shape[0])).to_dict()
+
+    # TO-DO: define row_colors
 
     # Generate relevant outputs and plots
-    paa.vis.plot_heatmap(agg_df)
-    paa.vis.plot_correlation_matrix()
-    paa.vis.plot_zscore_scatter()
-    paa.vis.plot_zscore_hist()
-    paa.vis.get_top_hits()
+    # paa.vis.plot_heatmap(scaled_data, out_dir, row_colors)
+    corr_matrix_pearson = paa.vis.plot_correlation_matrix(scaled_data, screen_name, out_dir, method='pearson')
+    corr_matrix_spear = paa.vis.plot_correlation_matrix(scaled_data, screen_name, out_dir, method='spearman')
+    paa.vis.plot_zscore_scatter(scaled_data, out_dir, corr_matrix_pearson, corr_matrix_spear)
+    paa.vis.plot_zscore_hist(scaled_data, out_dir, b)
+    paa.vis.top_n_hits(scaled_data, ind_dict, out_dir, n)
+    thresh_df = paa.vis.threshold_substrates(scaled_data, ind_dict, out_dir, threshold)
+    paa.vis.plot_substrate_class_pie(thresh_df, row_dict, out_dir)
+    paa.vis.specificity_analysis(processed_data, out_dir, threshold)
+
+    return
