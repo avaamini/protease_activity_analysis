@@ -181,7 +181,8 @@ def kinetic_visualization(data_path, screen_name, row_dict, out_dir,
         row_dict (pandas df): labels that classify rows by some property
             (e.g. substrate by their protease susceptibility)
         out_dir (str): directory to save all outputs
-        process (boolean):
+        process (boolean): option to remove substrates that are not cleaved
+            across all samples/proteases
 
     """
 
@@ -203,7 +204,7 @@ def kinetic_visualization(data_path, screen_name, row_dict, out_dir,
 
     ind_dict = pd.Series(scaled_data.index, index=range(scaled_data.shape[0])).to_dict()
 
-    # TO-DO: define row_colors
+    # TO-DO: define row_colors for plot_heatmap
 
     # Generate relevant outputs and plots
     # paa.vis.plot_heatmap(scaled_data, out_dir, row_colors)
