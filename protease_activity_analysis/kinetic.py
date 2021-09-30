@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+import protease_activity_analysis as paa
 
 from adjustText import adjust_text
 
@@ -43,18 +44,26 @@ class KineticDataset:
     def set_rate(self):
         """ Calculate initial rate in intensity/min
         """
-        initial_rate = (self.raw_mean[self.linear_time] - self.raw_mean[0]) / (
-            self.linear_time)
-        initial_rate_name = 'Initial rate at t=' + str(self.linear_time)
-        initial_rate_df = initial_rate.to_frame(name=initial_rate_name)
-        self.inital_rate = initial_rate_df
+        col = self.raw.columns
+        if self.linear_time in col:
+            initial_rate = (self.raw_mean[self.linear_time] - self.raw_mean[0]) / (
+                self.linear_time)
+            initial_rate_name = 'Initial rate at t=' + str(self.linear_time)
+            initial_rate_df = initial_rate.to_frame(name=initial_rate_name)
+            self.initial_rate = initial_rate_df
 
-        z_score_rate_df = self.z_score(initial_rate_df)
-        self.initial_rate_zscore = z_score_rate_df
+            z_score_rate_df = self.z_score(initial_rate_df)
+            self.initial_rate_zscore = z_score_rate_df
+        else:
+            print('Give valid time in screen to calculate initial rate metrics')
+            print('Valid times are:', col.to_list())
+            self.initial_rate = None
+            self.initial_rate_zscore = None
 
     def set_fc(self):
         """ Calculate FC metrics.
         """
+
         # mean fold change for all substrates at all times
         fc_mean = self.raw_mean.div(self.raw_mean[0], axis=0)
         self.fc_mean = fc_mean
@@ -66,20 +75,27 @@ class KineticDataset:
         self.fc = fc
 
         # fold change at time fc_time (x)
-        fc_x = fc_mean[self.fc_time]
-        self.fc_x = fc_x
+        col = self.fc_mean.columns
+        if self.fc_time in col:
+            fc_x = fc_mean[self.fc_time]
+            self.fc_x = fc_x
 
-        # Calculate z_score by fold change
-        z_score_fc = self.z_score(fc_x)
-        fc_name = 'Z-scored fold change at t=' + str(self.fc_time)
-        z_score_fc = z_score_fc.to_frame(name=fc_name)
-        self.fc_zscore = z_score_fc
+            # Calculate z_score by fold change
+            z_score_fc = self.z_score(fc_x)
+            fc_name = 'Z-scored fold change at t=' + str(self.fc_time)
+            z_score_fc = z_score_fc.to_frame(name=fc_name)
+            self.fc_zscore = z_score_fc
 
-        self.fc = self.fc.reset_index()
+            self.fc = self.fc.reset_index()
+        else:
+            print('Give valid time in screen to calculate fold change metrics')
+            print('Valid times are:', col.to_list())
+            self.fc_x = None
+            self.fc_zscore= None
+
 
     def z_score(self, data):
         """ Standard (z) score the data
-
         Args:
             data (pandas.Series, pandas.Dataframe): data matrix
         Returns:
@@ -90,12 +106,10 @@ class KineticDataset:
 
     def plot_kinetic(self, kinetic_data, title, ylabel):
         """ Plot trajectory of kinetic data.
-
         Args:
             kinetic_data (df): data plot
             title (str): name for the plot
             ylabel (str): label for the y-axis
-
         Returns:
             ax (matplotlib axes): the plot
         """
@@ -128,15 +142,23 @@ class KineticDataset:
             f"{title}_{ylabel}_kinetic.pdf")
         ax.figure.savefig(file_path)
 
-        plt.close()
+        # plt.close()
 
         return ax
 
     def write_csv(self, data_to_write, save_name):
         """ Write data of interest to CSV and save """
         data_save_path = os.path.join(self.save_dir,
-            f"{self.sample}_{save_name}.csv")
+            f"{self.sample_name}_{save_name}.csv")
         data_to_write.to_csv(data_save_path)
+
+    def get_sample_name(self):
+        """ Getter for sample name """
+        return self.sample_name
+
+    def get_raw(self):
+        """ Getter for Raw data """
+        return self.raw
 
     def get_fc(self):
         """ Getter for FC """
@@ -158,10 +180,70 @@ class KineticDataset:
         """ Getter for z-score FC values"""
         return self.fc_zscore
 
-    def get_inital_rate(self):
+    def get_initial_rate(self):
         """ Getter for initial rate """
         return self.initial_rate
 
-    def get_intial_rate_zscore(self):
+    def get_initial_rate_zscore(self):
         """ Getter for initial rate, z-scored """
         return self.initial_rate_zscore
+
+
+# removed col_dict for simplicity
+def kinetic_visualization(data_path, screen_name, out_dir, row_dict=None, col_dict=None, col_map=None,
+                          n=5, b=15, threshold=1, process=True):
+    """ Visualizes protease activity data in different formats
+    Args:
+        data_path (list of str): directories of .csv files for each sample
+            in a given screen with a single column with name of sample and rows
+            corresponding to substrates screened. Requires building a pandas df
+            from different inputs.
+        screen_name (str): name of screen
+        row_dict (pandas df): labels that classify rows by some property
+            (e.g. substrate by their protease susceptibility)
+        color_dict (dict): with keys = class and values = color for class
+        color_map = dictionary that maps classes to colors
+        out_dir (str): directory to save all outputs
+        process (boolean): if yes will drop substrates with a negative initial rate
+        n (int): number of top substrates to return in top_n_substrates
+        b (int): number of bins in plotting histogram
+        threshold (float): cut-off for cleavage z-scores
+
+    Returns:
+        top_n_hits (pandas df):
+    """
+
+    # Create data matrix from 1+ datafiles
+    agg_df = paa.vis.aggregate_data(data_path, out_dir)
+
+    # remove non-cleaved substrates
+    if process:
+        dropping = paa.vis.process_data(agg_df)
+        processed_data = agg_df.drop(index=dropping)
+        row_dict = row_dict.drop(index=dropping)
+    else:
+        processed_data = agg_df
+
+    # z-score data
+    scaled_data = paa.vis.scale_data(processed_data)
+    data_save_path = os.path.join(out_dir, screen_name+"_z_scored.csv")
+    scaled_data.to_csv(data_save_path, index=False)
+
+    ind_dict = pd.Series(scaled_data.index, index=range(scaled_data.shape[0])).to_dict()
+
+    # TO-DO: define row_colors
+
+    # Generate relevant outputs and plots
+    agg_df_t = agg_df.T
+    paa.vis.plot_heatmap(agg_df_t, out_dir)
+    corr_matrix_pearson = paa.vis.plot_correlation_matrix(scaled_data, screen_name, out_dir, method='pearson')
+    corr_matrix_spear = paa.vis.plot_correlation_matrix(scaled_data, screen_name, out_dir, method='spearman')
+    paa.vis.plot_zscore_scatter(scaled_data, out_dir, corr_matrix_pearson, corr_matrix_spear)
+    paa.vis.plot_zscore_hist(scaled_data, out_dir, b)
+    top_n_hits = paa.vis.top_n_hits(scaled_data, ind_dict, out_dir, n)
+    thresh_df = paa.vis.threshold_substrates(scaled_data, ind_dict, out_dir, threshold)
+    # paa.vis.plot_substrate_class_pie(thresh_df, row_dict, col_map, out_dir) TODO: Need to fix dictionaries inside the
+    #  function to make it work
+    paa.vis.specificity_analysis(processed_data, out_dir, threshold)
+
+    return top_n_hits, thresh_df, row_dict, ind_dict
