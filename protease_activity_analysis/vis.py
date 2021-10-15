@@ -170,7 +170,7 @@ def plot_pca(data_matrix, features, group_key, pca_groups, biplot,
     fig.savefig(os.path.join(out_path, file))
     plt.close()
 
-    return
+    return fig
 
 def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_name):
     """ Volcano plot for differential enrichment of features between two groups.
@@ -248,8 +248,7 @@ def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_na
     adjust_text(texts)
 
     ax.set_xlabel(
-        'Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')',
-        fontname='Arial', fontsize = 20)
+        'Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')')
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 20)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
@@ -266,7 +265,7 @@ def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_na
     fig.savefig(os.path.join(out_path, file))
     plt.close()
 
-    return
+    return fig
 
 def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
     cmap):
@@ -294,10 +293,9 @@ def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
     file_name = file_name + "_confusion.pdf"
     fig = g.get_figure()
     fig.savefig(os.path.join(out_path, file_name))
-    fig.clf()
     plt.close(fig)
 
-    return
+    return fig
 
 def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     """Plots mean ROC curve + standard deviation boundary from k-fold cross val.
@@ -343,7 +341,7 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     fig.savefig(os.path.join(out_path, file))
     plt.close()
 
-    return
+    return fig
 
 def plot_matrix(data_matrix):
     """ Visualizes protease activity data matrix as heatmap.
