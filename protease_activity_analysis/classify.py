@@ -217,7 +217,7 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
         X_train, X_val, Y_train, Y_val = train_test_split(
             X, Y, test_size=0.2, shuffle=True, stratify=Y
         )
-
+        
         # feature scaling for standardization. compute scaler on training set.
         if standard_scale:
             scaler = get_scaler(X_train)
@@ -251,7 +251,7 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
             scores_test.append(score_test)
             tprs_test.append(interp_tpr_test)
             aucs_test.append(auc_test)
-
+  
     ## TODO: could possibly change this to a data frame
     val_dict = {"probs": probs_val, "scores": scores_val,
         "tprs": tprs_val, "aucs": aucs_val}
@@ -350,6 +350,7 @@ def rfe_cv(X, Y, class_type, k_splits, out_path, save_name, standard_scale=False
     
     # evaluate the models and store results
     res_accuracies, res_aucs, names = list(), list(), list()
+    mean_accuracies, mean_aucs, std_accuracies, std_aucs = list(), list(), list(), list()
     num_features = X.shape[1]
     classifiers = get_models(classifier, num_features)
 
@@ -364,9 +365,15 @@ def rfe_cv(X, Y, class_type, k_splits, out_path, save_name, standard_scale=False
         print('>%s AUC: %.3f (%.3f)' % (
             name, np.mean(res_aucs), np.std(res_aucs)))
 
+        mean_accuracies.append((np.mean(res_accuracies)))
+        std_accuracies.append((np.std(res_accuracies)))
+        mean_aucs.append((np.mean(res_aucs)))
+        std_aucs.append((np.std(res_aucs)))
+
     # Plot num features vs. accracy/auc
     fig, ax = plt.subplots()
-    ax.boxplot(res_accuracies, labels=names)
+    #ax.boxplot(res_accuracies, labels=names)
+    ax.errorbar(names,mean_accuracies, std_accuracies)
     ax.set_xlabel('Number of Features', fontsize = 15)
     ax.set_ylabel('Accuracy', fontsize = 15)
     fig = ax.get_figure()
@@ -375,7 +382,8 @@ def rfe_cv(X, Y, class_type, k_splits, out_path, save_name, standard_scale=False
     plt.close()
 
     fig, ax = plt.subplots()
-    ax.boxplot(res_aucs, labels=names)
+    #ax.boxplot(res_aucs, labels=names)
+    ax.errorbar(names,mean_aucs, std_aucs)
     ax.set_xlabel('Number of Features', fontsize = 15)
     ax.set_ylabel('ROC AUC', fontsize = 15)
     fig = ax.get_figure()
