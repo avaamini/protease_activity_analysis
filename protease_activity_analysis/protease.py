@@ -23,6 +23,7 @@ def classify_protease(protease):
         if protease in class_dict[key]:
             class_mem = key
     if class_mem is None:
+        class_mem = 'Other'
         print('Protease ' + protease + ' not found')
 
     return class_mem
