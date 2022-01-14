@@ -16,6 +16,7 @@ from sklearn import svm, model_selection, metrics, ensemble
 from plotnine import ggplot, geom_tile, aes, scale_fill_gradient2, coord_equal, \
     themes
 from adjustText import adjust_text
+import protease_activity_analysis as paa
 
 # Set default font to Arial
 # Say, "the default sans-serif font is Arial
@@ -535,7 +536,7 @@ def plot_heatmap(data_matrix, out_path, row_colors=None, col_colors=None, center
                              method=method,
                              metric=metric
                              )
-    fig.savefig(os.path.join(out_path, 'heatmap.png'))
+    fig.savefig(os.path.join(out_path, 'heatmap.pdf'))
 
     return heat
 
@@ -559,7 +560,7 @@ def plot_correlation_matrix(data_matrix, title, out_path, method = 'pearson'):
     sns.heatmap(corr_matrix, annot=True)
     plt.title(str(title)+' - '+method+ ' correlation')
     plt.tight_layout()
-    fig.savefig(os.path.join(out_path, title+'_corrmat_'+method+'.png'))
+    fig.savefig(os.path.join(out_path, title+'_corrmat_'+method+'.pdf'))
 
     sns.set(font_scale=1.5)
 
@@ -598,11 +599,12 @@ def plot_zscore_scatter(data, out_path, corr_matrix_pearson, corr_matrix_spear):
                     verticalalignment='top', bbox=props)
             plt.tight_layout()
             fig.savefig(os.path.join(out_path, 'scatter_' + str(data.columns[col])
-                                     + '_vs_' + str(data.columns[y])+'.png'))
+                                     + '_vs_' + str(data.columns[y])+'.pdf'))
             plt.close()
     return
 
-def plot_zscore_hist(data_matrix, out_path, b=15):
+
+def plot_zscore_hist(data_matrix, out_path, b=15, plot=False):
     """ Plot distribution of z-scores with histograms for each column
     (sample/protease).
     Args:
@@ -619,9 +621,14 @@ def plot_zscore_hist(data_matrix, out_path, b=15):
         plt.ylabel('frequency')
         plt.title(col)
         plt.tight_layout()
-        plt.savefig(os.path.join(out_path, 'hist_'+col+'.png'))
+        plt.savefig(os.path.join(out_path, 'hist_'+col+'.pdf'))
+
+    if not plot:
+        plt.close()
+
 
     return
+
 
 def top_n_hits(data_matrix, ind_dict, out_path, n=5):
     """ Find top n cleaved substrates for each column (sample/protease).
@@ -736,7 +743,7 @@ def plot_substrate_class_pie(thr_df, dict_df, color_dict, out_path):
         plt.pie(counts, labels=l, colors=col, autopct='%1.f%%');
         plt.title(c)
         plt.tight_layout()
-        plt.savefig(os.path.join(out_path, c+'_class_pie.png'))
+        plt.savefig(os.path.join(out_path, c+'_class_pie.pdf'))
 
     return
 
@@ -780,6 +787,152 @@ def specificity_analysis(data_matrix, out_path, threshold=1):
                 plt.annotate(txt, (x[j], y[j]), fontsize=12)
 
         plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
-                                 str(data_matrix.columns[i]) + '.png'))
+                                 str(data_matrix.columns[i]) + '.pdf'))
 
     return
+
+def plot_specificity_protease(screen, out_path, threshold=1, plot=False, cmap=False):
+    """ Plots tissue specificity versus cleavage efficiency.
+    Args:
+            screen (pandas df) : raw screening data
+            out_path (str): path to store the results
+            threshold (float): cut-off for z-scores for labeling on plot
+            plot (bool): if True, will open the generated plot
+            cmap (bool): if True, will overlay raw intensity values for the screen on scatter plot
+    """
+    data_matrix = screen
+    raw_prot_vals = data_matrix.values
+    limits = [np.min(raw_prot_vals), np.max(raw_prot_vals)]
+    prot = screen.columns
+
+    for el in prot:
+        query = el
+
+        # z-score by column (tissue sample/condition, cleavage efficency)
+        cl_z = paa.vis.scale_data(data_matrix)
+
+        # z-score by row (probe, substrate specificity)
+        dataT = data_matrix.transpose()
+        dataT = paa.vis.scale_data(dataT)
+        sp_z = dataT.transpose()
+
+        # get x and y coordinates for scatterplot
+        x = cl_z[query]
+        y = sp_z[query]
+
+        plt.figure()
+
+        # plot scatter plot with or without colormap
+        if cmap:
+            raw_query_vals = data_matrix[query].values
+            plt.scatter(x, y, c=raw_query_vals, s=60, edgecolors='grey')
+            plt.clim(limits[0], limits[1])
+            cbar = plt.colorbar()
+            cbar.set_label('Raw values in screen', fontsize=14)
+        else:
+            plt.scatter(x, y, s=60)
+
+        plt.xlabel('Cleavage efficiency', fontsize=16)
+        plt.ylabel('Specificity', fontsize=16)
+        plt.title(query, fontsize=18)
+        plt.tight_layout()
+
+        labels = data_matrix.index
+        text = []
+        for j, txt in enumerate(labels):
+            if x[j] > threshold or y[j] > threshold:
+                text.append(plt.annotate(txt, (x[j], y[j]), fontsize=12, weight='bold'))
+
+        adjust_text(text, force_points=4, arrowprops=dict(arrowstyle="-", color="k", lw=0.5))
+        plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
+                                query + '.pdf'))
+
+        if not plot:
+            plt.close()
+
+    return
+
+
+def plot_specificity_substrate(screen, out_path, threshold=1, plot=False, cmap=False):
+    """ Plots tissue specificity versus cleavage efficiency.
+        Args:
+            screen (pandas df) : raw screening data
+            out_path (str): path to store the results
+            threshold (float): cut-off for z-scores for labeling on plot
+            plot (bool): if True, will open the generated plot
+            cmap (bool): if True, will overlay raw intensity values for the screen on scatter plot
+    """
+    data_matrix = screen.transpose()
+    raw_prot_vals = data_matrix.values
+    limits = [np.min(raw_prot_vals), np.max(raw_prot_vals)]
+    subs = data_matrix.columns
+
+    for el in subs:
+        query = el
+
+        # z-score by column (tissue sample/condition, cleavage efficiency)
+        cl_z = paa.vis.scale_data(data_matrix)
+
+        # z-score by row (probe, substrate specificity)
+        dataT = data_matrix.transpose()
+        dataT = paa.vis.scale_data(dataT)
+        sp_z = dataT.transpose()
+
+        # get x and y coordinates for scatterplot
+        x = cl_z[query]
+        y = sp_z[query]
+        prot_col_map = {'Metallo': 'g', 'Serine': 'orange', 'Aspartic': 'k', 'Cysteine': 'b', 'Other': 'grey'}
+
+        plt.figure()
+
+        if cmap:
+            raw_query_vals = data_matrix[query].values
+            plt.scatter(x, y, c=raw_query_vals, s=60, edgecolors='grey')
+            plt.clim(limits[0], limits[1])
+            cbar = plt.colorbar()
+            cbar.set_label('Raw values in screen', fontsize=14)
+        else:
+            plt.scatter(x, y, s=60)
+
+        plt.xlabel('Cleavage efficiency', fontsize=16)
+        plt.ylabel('Specificity', fontsize=16)
+        plt.title(query, fontsize=18)
+        plt.tight_layout()
+
+        labels = data_matrix.index
+        text = []
+        for j, txt in enumerate(labels):
+            if x[j] > threshold or y[j] > threshold:
+                text.append(plt.annotate(txt, (x[j], y[j]), fontsize=12,
+                            color=prot_col_map[paa.protease.classify_protease(txt)], weight='bold'))
+
+        adjust_text(text, force_points=4, arrowprops=dict(arrowstyle="-", color="k", lw=0.5))
+        plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
+                                 query + '.pdf'))
+
+        if not plot:
+            plt.close()
+
+    return
+
+
+def hist(val, keys, x_label, y_label, title, identity, out_dir):
+    """ Specific histogram plotting function for database.py
+    Args:
+        val (list, array): Contains values those frequency to be plotted
+        keys (list, str): list of legend labels
+        x_label (str): x_label of histogram
+        y_label (str): y_label of histogram
+        title (str): title of histogram
+        identity (str): identity of protease or susbtrate
+        out_dir (str): output directory to save files to
+    """
+    fig, ax = plt.subplots()
+    n, bins, patches = plt.hist(val, alpha=0.75)
+    plt.title(title+' '+identity)
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
+    plt.legend(keys)
+    plt.show()
+    if out_dir:
+        fig.savefig(out_dir + '/' + identity + '_histogram_zscore.pdf')

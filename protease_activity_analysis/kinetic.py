@@ -240,10 +240,9 @@ def kinetic_visualization(data_path, screen_name, out_dir, row_dict=None, col_di
     corr_matrix_spear = paa.vis.plot_correlation_matrix(scaled_data, screen_name, out_dir, method='spearman')
     paa.vis.plot_zscore_scatter(scaled_data, out_dir, corr_matrix_pearson, corr_matrix_spear)
     paa.vis.plot_zscore_hist(scaled_data, out_dir, b)
-    top_n_hits = paa.vis.top_n_hits(scaled_data, ind_dict, out_dir, n)
+    top_n_hits = paa.vis.top_n_hits(scaled_data, ind_dict, out_dir, n, plot=False)
     thresh_df = paa.vis.threshold_substrates(scaled_data, ind_dict, out_dir, threshold)
-    # paa.vis.plot_substrate_class_pie(thresh_df, row_dict, col_map, out_dir) TODO: Need to fix dictionaries inside the
-    #  function to make it work
-    paa.vis.specificity_analysis(processed_data, out_dir, threshold)
+    paa.vis.plot_specificity_protease(agg_df, out_dir, threshold=1, plot=False, cmap=True)
+    paa.vis.plot_specificity_substrate(agg_df, out_dir, threshold=1, plot=False, cmap=True)
 
     return top_n_hits, thresh_df, row_dict, ind_dict
