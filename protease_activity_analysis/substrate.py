@@ -209,7 +209,7 @@ def similarity_matrix(subs_list, seqs_list):
     plt.figure()
     cluster_grid_sim_par_m = sns.clustermap(sim_par_m)
     plt.title('Partial Levenschtein Similarity Ratio', fontsize=16)
-    return sim_m, sim_par_m
+    return sim_m, sim_par_m, cluster_grid_sim_m, cluster_grid_sim_par_m
 
 
 def summarize_kmer(kmer_overlap_q, top_k):
