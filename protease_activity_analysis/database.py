@@ -7,11 +7,14 @@ import pickle
 import os
 import protease_activity_analysis as paa
 from colorama import init, Fore, Back, Style
+from adjustText import adjust_text
 
 class SubstrateDatabase(object):
 
     def __init__(self, data_files, sequence_file, names_file=None, aa_dict_file=None):
         self.screens = {}
+        self.raw_screens = {}
+        self.raw_limits = {}
         self.file_list = data_files
 
         self.substrates = {}
@@ -26,9 +29,11 @@ class SubstrateDatabase(object):
 
         for f in data_files:
 
-            data, name, substrates, proteases = self.load_dataset(f)
+            data_zscored, data, name, substrates, proteases = self.load_dataset(f)
             self.screen_names.append(name)
-            self.screens[name] = data
+            self.screens[name] = data_zscored
+            self.raw_screens[name] = data
+            self.raw_limits[name] = [np.nanmin(data.values), np.nanmax(data.values)]
 
             self.substrates[name] = substrates
             self.proteases[name] = proteases
@@ -54,7 +59,7 @@ class SubstrateDatabase(object):
         # Summarize screen metadata - uncomment if we decide that this would always be worth running
         # self.summary_df = self.summarize_screen(names)
 
-    def load_dataset(self, file_path, z_score=True):
+    def load_dataset(self, file_path):
         """ Load dataset from a csv file
 
         Args:
@@ -69,15 +74,14 @@ class SubstrateDatabase(object):
         substrates = list(data[data.columns[0]])
         proteases = list(data.iloc[:,1:].columns)
 
-        #Correct for possible spaces
+        # Correct for possible spaces
         proteases = [item.replace(' ', '') for item in proteases]
-        data.columns = [data.columns[0]] + proteases  #Change names in df
+        data.columns = [data.columns[0]] + proteases  # Change names in df
         data = data.set_index(data.columns[0])
 
-        if z_score:
-            data = (data - data.mean()) / data.std(ddof=0)
+        data_zscored = (data - data.mean()) / data.std(ddof=0)
 
-        return data, file_name, substrates, proteases
+        return data_zscored, data, file_name, substrates, proteases
 
     def load_substrate_names(self, names_file):
         """ Mapping of unified substrate names to alternative names or
@@ -239,19 +243,21 @@ class SubstrateDatabase(object):
             print('No kmer_overlap with key ' + str(k) + ' stored. Please use run_kmer_analysis() with said k prior to '
                                                          'calling this function')
 
-    def search_protease(self, protease, out_dir=None, z_threshold=None):
+    def search_protease(self, protease, out_dir=None, z_threshold=None, plot_hist=False):
         """ Return df of substrates and their cleavage by a given protease
 
         Args:
             protease (str): protease of interest
             out_dir (str): if specified, directory for writing data
             z_threshold (float): upper bound z-score cutoff for substrate return
+            plot_hist (bool): if Treu, plot histogram of data
         Returns:
             protease_cleavage_df (pandas df): zscores for protease against all
                 substrates found in the screen datasets
         """
         protease_cleavage_dict = {}
         screens = self.proteases.keys()
+        all_zscores = []
 
         protease_found = False
         for screen in screens:
@@ -260,10 +266,15 @@ class SubstrateDatabase(object):
 
                 # get cleavage data for the protease found in particular screen
                 protease_cleavage_dict[screen] = self.screens[screen][protease]
+                all_zscores.append(protease_cleavage_dict[screen].values)
                 protease_found = True
 
         if not protease_found:
             raise ValueError("Protease not found in datasets. Please try again.")
+
+        # Plot histogram of screening data
+        if plot_hist:
+            paa.vis.hist(all_zscores, screens, 'z_scores', 'Frequency', 'Z-score distributions', protease, out_dir)
 
         protease_cleavage_df = pd.DataFrame.from_dict(protease_cleavage_dict)
 
@@ -295,7 +306,7 @@ class SubstrateDatabase(object):
 
         return sub_info['Name'].item()
 
-    def search_substrate(self, substrate, out_dir=None, z_threshold=None):
+    def search_substrate(self, substrate, out_dir=None, z_threshold=None, return_sub=False):
         """ Return df of proteases and their cleavage of a given substrate
 
         Args:
@@ -333,6 +344,9 @@ class SubstrateDatabase(object):
             print(f"Substrate found under unified name {sub_name}")
             substrate_cleavage_dict = query_sub(sub_name, screens)
 
+        else:
+            sub_name = substrate
+
         substrate_cleavage_df = pd.DataFrame.from_dict(substrate_cleavage_dict)
 
         # Filter for values above the threshold
@@ -345,7 +359,11 @@ class SubstrateDatabase(object):
                 os.path.join(out_dir, f"{substrate}_{z_threshold}.csv")
             )
 
-        return substrate_cleavage_df
+        if return_sub:
+            return substrate_cleavage_df, sub_name
+
+        else:
+            return substrate_cleavage_df
 
     def search_sequence(self, sequence, out_dir=None, z_threshold=None):
         """ Return df of proteases and their cleavage of a given sequence
@@ -402,7 +420,7 @@ class SubstrateDatabase(object):
             print(f"Top hits for {query} in {screen}:")
             if query_type == 'protease':
                 for name in top_k_screen_names:
-                    print(name + ' : ' + paa.substrate.color_seq(ex_sub=self.get_sequence_of_name(name),
+                    print(name + ' : ' + self.get_sequence_of_name(name) + ' - ' + paa.substrate.color_seq(ex_sub=self.get_sequence_of_name(name),
                                                                  all_natural=
                                                                  self.database[self.database['Name'] == name][
                                                                      'Composition'].to_list() == ['Natural'],
@@ -412,10 +430,18 @@ class SubstrateDatabase(object):
                 print(*top_k_screen_names, sep="\n")
 
         top_k_individual = pd.concat(individual_dfs)
+        if query_type == 'protease':
+            top_k_individual = top_k_individual.reset_index()
+            top_k_individual['Sequence'] = top_k_individual.apply(lambda row: self.get_sequence_of_name(row['index']), axis=1)
+            top_k_individual = top_k_individual.set_index('index')
 
         top_k_overall = pd.concat(individual_dfs)
         top_k_overall.sort_values(by='Scores', ascending=False, inplace=True)
         top_k_overall = top_k_overall[:top_k]
+        if query_type == 'protease':
+            top_k_overall = top_k_overall.reset_index()
+            top_k_overall['Sequence'] = top_k_overall.apply(lambda row: self.get_sequence_of_name(row['index']), axis=1)
+            top_k_overall = top_k_overall.set_index('index')
 
         top_k_print = zip(
             list(top_k_overall.index),
@@ -472,7 +498,16 @@ class SubstrateDatabase(object):
             summary_df.loc[i, 0:3] = [key, len(self.substrates[key]), len(self.proteases[key])]
 
         ax1 = summary_df.plot.bar(x='Screen', y='# Peptides', rot=0, color='blue')
-        ax1.set(title='# Peptides/Screen', xlabel='Screen', ylabel='# Peptides')
+        ax1.set_title('# Peptides/Screen', fontsize=20)
+        ax1.set_xlabel('Screen', fontsize=18)
+        ax1.set_ylabel('# Peptides', fontsize=18)
+        plt.xticks(rotation=45, ha='right', fontsize=15)
+        ax1.legend(prop={'size': 11})
+
+        # Uncomment to save figure
+        # file_path = os.path.join('outputs/DatabaseTutorial',
+        #                          'summary_subs.pdf')
+        # ax1.figure.savefig(file_path)
 
         labels = names
         metallo_f = summary_df['Metallo']
@@ -487,9 +522,15 @@ class SubstrateDatabase(object):
         ax.bar(labels, serine_f, bottom=cysteine_f + aspartic_f, label='Serine', color='orange')
         ax.bar(labels, metallo_f, bottom=cysteine_f + aspartic_f + serine_f, label='Metallo', color='g')
 
-        ax.set_ylabel('Frequency')
-        ax.set_title('#Proteases/screen by class')
-        ax.legend()
+        ax.set_ylabel('Frequency', fontsize=18)
+        ax.set_title('#Proteases/screen by class', fontsize=20)
+        plt.xticks(rotation=45, ha='right', fontsize=15)
+        ax.legend(prop={'size': 11})
+
+        # Uncomment to save figure
+        # file_path = os.path.join('outputs/DatabaseTutorial',
+        #                          'summary_prot.pdf')
+        # ax.figure.savefig(file_path)
 
         plt.show()
         return summary_df
@@ -541,8 +582,9 @@ class SubstrateDatabase(object):
 
                 seqs_q = []
                 for seq in subs_q:
-                    seqs_q.append(self.get_sequence_of_name(seq))
-                    print(seq + ':' + paa.substrate.color_seq(self.get_sequence_of_name(seq), all_natural, aa_dict))
+                    seq_i = self.get_sequence_of_name(seq)
+                    seqs_q.append(seq_i)
+                    print(seq + ':' + seq_i+ ' - ' + paa.substrate.color_seq(seq_i, all_natural, aa_dict))
                     print(Style.RESET_ALL)
                 df = pd.DataFrame(index=np.arange(len(subs_q)))
                 df['Peptide'] = subs_q
@@ -577,18 +619,19 @@ class SubstrateDatabase(object):
         sim_m_sorted = sim_m.sort_values(by=[metric], ascending=False)
 
         print('Queried seq:')
-        print(paa.substrate.color_seq(seq, all_natural, self.aa_dict))
+        print(seq + ' - ' + paa.substrate.color_seq(seq, all_natural, self.aa_dict))
         print(Style.RESET_ALL)
 
         top_k = sim_m_sorted.iloc[:top_k, :]
         for i in np.arange(top_k.shape[0]):
-            print(top_k['Name'].iloc[i] + ':' + paa.substrate.color_seq(top_k['Sequence'].iloc[i],
+            seq_i = top_k['Sequence'].iloc[i]
+            print(top_k['Name'].iloc[i] + ':' + seq_i + ' - ' + paa.substrate.color_seq(seq_i,
                                                           top_k['Composition'].iloc[i] == 'Natural', self.aa_dict))
             print(Style.RESET_ALL)
 
         return sim_m_sorted, top_k
 
-    def get_similarity_matrix(self):
+    def get_similarity_matrix(self, out_dir=False):
         """ Calculate pairwise similarity between all substartes in subs_list and return similarity matrix
             Args:
                 subs_list (list, str): list containing all names of substrates of interest
@@ -619,12 +662,17 @@ class SubstrateDatabase(object):
         plt.figure()
         cluster_grid_sim_m = sns.clustermap(sim_m)
         plt.title('Levenschtein Similarity Ratio', fontsize=16)
+        if out_dir:
+            plt.savefig(os.path.join(out_dir, 'sim_m.pdf'))
+
 
         plt.figure()
         cluster_grid_sim_par_m = sns.clustermap(sim_par_m)
         plt.title('Partial Levenschtein Similarity Ratio', fontsize=16)
+        if out_dir:
+            plt.savefig(os.path.join(out_dir, 'par_sim_m.pdf'))
 
-        return sim_m, sim_par_m
+        return sim_m, sim_par_m, cluster_grid_sim_m, cluster_grid_sim_par_m
 
     def summarize_kmer(self, kmer_len, top_k):
         """ Summarize kmer_overlap data
@@ -645,7 +693,16 @@ class SubstrateDatabase(object):
         kmer_f_sorted = kmer_f.sort_values(by=['Frequency'], ascending=False)
         kmer_f_sorted_filtered = kmer_f_sorted.iloc[:top_k, :]
 
+
+        plt.figure()
+
         hist = kmer_f_sorted.hist(bins=np.max(np.max(kmer_f_sorted['Frequency'])))
+        plt.xlabel('# substrates with kmer', fontsize=16)
+        plt.ylabel('# kmers', fontsize=16)
+        plt.title(str(kmer_len) + '-mer frequency distribution', fontsize=18)
+        #plt.tight_layout()
+
+        # plt.savefig(os.path.join('outputs/DatabaseTutorial', 'kmer_dist.pdf'))
 
         return kmer_f_sorted, kmer_f_sorted_filtered
 
@@ -662,3 +719,185 @@ class SubstrateDatabase(object):
             lambda row: paa.protease.classify_protease(row['Protease']), axis=1)
 
         return protease_class_dict
+
+    def plot_specificity_substrate(self, screen, out_path, threshold=1, substrate=None, plot=False, cmap=False):
+        """ Plots tissue specificity versus cleavage efficiency.
+            Args:
+                screen (str) : name of screen in database
+                out_path (str): path to store the results
+                threshold (float): cut-off for z-scores for labeling on plot
+                substrate (str): Name of substrate to look up specificity for
+                cmap (bool): if True, will overlay raw intensity values for the screen on scatter plot
+        """
+
+        data_matrix = self.raw_screens[screen].transpose()
+        subs = self.get_screen_substrates(screen)
+        query = substrate
+        if query not in subs:
+            print('Enter valid substrate in given screen')
+            return
+
+        # z-score by column (tissue sample/condition, cleavage efficency)
+        cl_z = paa.vis.scale_data(data_matrix)
+
+        # z-score by row (probe, substrate specificity)
+        dataT = data_matrix.transpose()
+        dataT = paa.vis.scale_data(dataT)
+        sp_z = dataT.transpose()
+        # display(sp_z)
+
+        # get x and y coordinates for scatterplot
+        x = cl_z[query]
+        y = sp_z[query]
+        prot_col_map = {'Metallo': 'g', 'Serine': 'orange', 'Aspartic': 'k', 'Cysteine':'b', 'Other': 'grey'}
+
+        fig, ax = plt.subplots()
+        # group = self.get_protease_class(screen)['Class'].values
+        # raw_prot_vals = data_matrix[query]
+        # for g in np.unique(group):
+        #     ix = np.where(group == g)[0]
+        #     ax.scatter(x[ix], y[ix], c=raw_prot_vals[ix], label=g, s=60, edgecolors=prot_col_map[g])
+
+        # plot scatter plot with or without colormap
+        if cmap:
+            raw_prot_vals = data_matrix[query]
+            plt.scatter(x, y, c=raw_prot_vals, s=60, edgecolors='grey')
+            plt.clim(self.raw_limits[screen][0], self.raw_limits[screen][1])
+            cbar = plt.colorbar()
+            cbar.set_label('Raw values in ' + screen, fontsize=14)
+        else:
+            plt.scatter(x, y, s=60)
+
+        # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.xlabel('Cleavage efficiency', fontsize=16)
+        plt.ylabel('Specificity', fontsize=16)
+        plt.title(query, fontsize=18)
+        plt.tight_layout()
+
+        labels = data_matrix.index
+        text = []
+        for j, txt in enumerate(labels):
+            if x[j] > threshold or y[j] > threshold:
+                text.append(plt.annotate(txt, (x[j], y[j]), fontsize=12,
+                                         color=prot_col_map[paa.protease.classify_protease(txt)], weight='bold'))
+
+        adjust_text(text, force_points=4, arrowprops=dict(arrowstyle="-", color="k", lw=0.5))
+        plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
+                                 query + '_' + screen + '.png'))
+
+        if not plot:
+            plt.close()
+
+        return
+
+    def plot_specificity_protease(self, screen, out_path, threshold=1, protease=None, plot=False, cmap=False):
+        """ Plots tissue specificity versus cleavage efficiency.
+        Args:
+                screen (str) : name of screen in database
+                protease (str) : name of protease
+                out_path (str): path to store the results
+                threshold (float): cut-off for z-scores for labeling on plot
+                cmap (bool): if True, will overlay raw intensity values for the screen on scatter plot
+        """
+        data_matrix = self.raw_screens[screen]
+        prot = self.get_screen_proteases(screen)
+        query = protease
+        if query not in prot:
+            print('Enter valid protease in given screen')
+            return
+
+        # z-score by column (tissue sample/condition, cleavage efficency)
+        cl_z = paa.vis.scale_data(data_matrix)
+
+        # z-score by row (probe, substrate specificity)
+        dataT = data_matrix.transpose()
+        dataT = paa.vis.scale_data(dataT)
+        sp_z = dataT.transpose()
+
+        # get x and y coordinates for scatterplot
+        x = cl_z[query]
+        y = sp_z[query]
+
+        plt.figure()
+
+        # plot scatter plot with or without colormap
+        if cmap:
+            raw_prot_vals = data_matrix[query]
+            plt.scatter(x, y, c=raw_prot_vals, s=60, edgecolors='grey')
+            plt.clim(self.raw_limits[screen][0], self.raw_limits[screen][1])
+            cbar = plt.colorbar()
+            cbar.set_label('Raw values in ' + screen, fontsize=14)
+        else:
+            plt.scatter(x, y, s=60)
+
+        plt.xlabel('Cleavage efficiency', fontsize=16)
+        plt.ylabel('Specificity', fontsize=16)
+        plt.title(query, fontsize=18)
+        plt.tight_layout()
+
+        labels = data_matrix.index
+        text = []
+        for j, txt in enumerate(labels):
+            if x[j] > threshold or y[j] > threshold:
+                text.append(plt.annotate(txt, (x[j], y[j]), fontsize=12, weight='bold'))
+
+        adjust_text(text, force_points=4, arrowprops=dict(arrowstyle="-", color="k", lw=0.5))
+        plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
+                                 query + '_' + screen + '.png'))
+
+        if not plot:
+            plt.close()
+
+        return
+
+    def query_specificity(self, out_path, protease=None, substrate=None, threshold=2, plot=False, cmap=False, return_sub=False):
+        if protease and substrate:
+            print('Please query only 1 protease or 1 substrate at a time')
+            return
+        elif protease:
+            query = protease
+            query_df = self.search_protease(query)
+            screens_with_query = list(query_df.columns)
+            for screen in screens_with_query:
+                self.plot_specificity_protease(screen, out_path, threshold, protease=query, plot=plot, cmap=cmap)
+        elif substrate:
+            query = substrate
+            query_df, query = self.search_substrate(query, return_sub=True)
+            screens_with_query = list(query_df.columns)
+            for screen in screens_with_query:
+                self.plot_specificity_substrate(screen, out_path, threshold, substrate=query, plot=plot, cmap=cmap)
+        else:
+            print('Enter a valid protease or substrate')
+
+        return
+
+    def return_found_proteases(self, prot_list):
+        """ Returns list with found proteases
+            Args:
+                prot_list (list, str) : proteases of interest to look up
+        """
+        found_proteases = []
+        for protease in prot_list:
+            if protease in self.screen_proteases:
+                found_proteases.append(protease)
+            else:
+                print(protease + ' not found in database')
+        return found_proteases
+
+    def return_found_substrates(self, substrate_list):
+        """ Returns list with found proteases
+             Args:
+                substrate_list (list, str) : substrate_list of interest
+        """
+        found_substrates = []
+        for substrate in substrate_list:
+            if substrate in self.screen_substrates:
+                found_substrates.append(substrate)
+            else:
+                sub_name = self.database[self.database['Names'].apply(lambda x: substrate in x)]
+                if sub_name.shape[0] == 1:
+                    print('Substrate ' + substrate + ' is encoded by ' + sub_name['Name'].item())
+                    found_substrates.append(sub_name['Name'].item())
+                else:
+                    print('Substrate ' + substrate + ' not found')
+        return found_substrates
