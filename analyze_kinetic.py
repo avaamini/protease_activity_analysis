@@ -5,8 +5,7 @@ import argparse
 
 from utils import get_data_dir, get_output_dir
 
-# screen_path = os.path.join(data_dir, args.data_path)
-# python analyze_kinetic.py --in_path='revitope/Final/MCA_AEBSF.xlsx' --fc_time=30 --linear_time=30
+""" Script to analyze and visualize kinetic protease activity data."""
 
 if __name__ == '__main__':
     data_dir = get_data_dir()
