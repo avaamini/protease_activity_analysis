@@ -12,7 +12,6 @@ import protease_activity_analysis as paa
 
 from adjustText import adjust_text
 
-
 class KineticDataset:
     """ Dataset of kinetic protease activity measurements. """
     def __init__(self, data_path, fc_time, linear_time, out_dir, blank=0):
@@ -42,9 +41,11 @@ class KineticDataset:
         self.set_fc()
 
     def set_rate(self):
-        """ Calculate initial rate in intensity/min
-        """
+        """ Calculate and set initial rate in fluorescence intensity (RFU)/min"""
+
         col = self.raw.columns
+
+        # set initial rate according to the linear time inputted
         if self.linear_time in col:
             initial_rate = (self.raw_mean[self.linear_time] - self.raw_mean[0]) / (
                 self.linear_time)
@@ -54,15 +55,14 @@ class KineticDataset:
 
             z_score_rate_df = self.z_score(initial_rate_df)
             self.initial_rate_zscore = z_score_rate_df
-        else:
-            print('Give valid time in screen to calculate initial rate metrics')
-            print('Valid times are:', col.to_list())
+        else: # invalid time provided -- prompt to try again
             self.initial_rate = None
             self.initial_rate_zscore = None
+            print('Initial rates set to None. Please reinitialize dataset \
+                with valid time. Valid times are: {}'.format(col.to_list())
 
     def set_fc(self):
-        """ Calculate FC metrics.
-        """
+        """ Calculate fold change (FC) metrics. """
 
         # mean fold change for all substrates at all times
         fc_mean = self.raw_mean.div(self.raw_mean[0], axis=0)
@@ -92,7 +92,8 @@ class KineticDataset:
             print('Valid times are:', col.to_list())
             self.fc_x = None
             self.fc_zscore= None
-
+            print('Fold change metrics set to None. Please reinitialize \
+                Dataset with valid time.')
 
     def z_score(self, data):
         """ Standard (z) score the data
@@ -104,12 +105,13 @@ class KineticDataset:
         z_s = ((data - data.mean()) / data.std(ddof=0))
         return z_s
 
-    def plot_kinetic(self, kinetic_data, title, ylabel):
+    def plot_kinetic(self, kinetic_data, title, ylabel, plot=False):
         """ Plot trajectory of kinetic data.
         Args:
             kinetic_data (df): data plot
             title (str): name for the plot
             ylabel (str): label for the y-axis
+            plot (bool): if True, open the plot window
         Returns:
             ax (matplotlib axes): the plot
         """
@@ -142,12 +144,18 @@ class KineticDataset:
             f"{title}_{ylabel}_kinetic.pdf")
         ax.figure.savefig(file_path)
 
-        # plt.close()
+        if not plot:
+            plt.close()
 
         return ax
 
     def write_csv(self, data_to_write, save_name):
-        """ Write data of interest to CSV and save """
+        """ Write data of interest to CSV and save
+
+        Args:
+            data_to_write (df): data to write to csv
+            save_name (str): name token for saving
+        """
         data_save_path = os.path.join(self.save_dir,
             f"{self.sample_name}_{save_name}.csv")
         data_to_write.to_csv(data_save_path)
@@ -190,34 +198,40 @@ class KineticDataset:
 
 
 # removed col_dict for simplicity
-def kinetic_visualization(data_path, screen_name, out_dir, row_dict=None, col_dict=None, col_map=None,
-                          n=5, b=15, threshold=1, process=True):
-    """ Visualizes protease activity data in different formats
+def kinetic_visualization(data_path, screen_name, data_dir, row_dict=None,
+                          n=5, b=15, threshold=1, drop_neg=True):
+    """ Visualizes protease activity data in different formats. Given directory
+    of .csv files for sample screens, aggregate the data and then process and
+    visualize.
+
     Args:
-        data_path (list of str): directories of .csv files for each sample
-            in a given screen with a single column with name of sample and rows
-            corresponding to substrates screened. Requires building a pandas df
-            from different inputs.
-        screen_name (str): name of screen
+        data_path (list of str): paths of .csv files for each sample
+            in a kinetic screen with a single column with name of sample and rows
+            corresponding to substrates screened.
+        screen_name (str): name of screen. will be used for saving
+        data_dir (str): directory of files
+
         row_dict (pandas df): labels that classify rows by some property
             (e.g. substrate by their protease susceptibility)
-        color_dict (dict): with keys = class and values = color for class
-        color_map = dictionary that maps classes to colors
-        out_dir (str): directory to save all outputs
-        process (boolean): if yes will drop substrates with a negative initial rate
         n (int): number of top substrates to return in top_n_substrates
         b (int): number of bins in plotting histogram
-        threshold (float): cut-off for cleavage z-scores
+        threshold (float): lower bound cut-off for cleavage z-scores (drop lower)
+        drop_neg (boolean): if True drop substrates with a negative initial rate
 
     Returns:
-        top_n_hits (pandas df):
+        top_n_hits (pandas df): the top N substrates screened, ranked by zscore
+        thresh_df (pandas df): screen dataset thresholded by z-score cutoff
+        row_dict (pandas df): updated df of labels that classify rows by
+            property of interest
+        ind_dict (pandas Series): indices of the threshold and scaled kinetic
+            dataset df
     """
 
     # Create data matrix from 1+ datafiles
-    agg_df = paa.vis.aggregate_data(data_path, out_dir)
+    agg_df = paa.vis.aggregate_data(data_path, data_dir)
 
     # remove non-cleaved substrates
-    if process:
+    if drop_neg:
         dropping = paa.vis.process_data(agg_df)
         processed_data = agg_df.drop(index=dropping)
         row_dict = row_dict.drop(index=dropping)
@@ -231,17 +245,25 @@ def kinetic_visualization(data_path, screen_name, out_dir, row_dict=None, col_di
 
     ind_dict = pd.Series(scaled_data.index, index=range(scaled_data.shape[0])).to_dict()
 
-    # TO-DO: define row_colors
-
-    # Generate relevant outputs and plots
+    # Aggregate data, generate relevant outputs and plots
     agg_df_t = agg_df.T
+
+    # heatmap
     paa.vis.plot_heatmap(agg_df_t, out_dir)
+
+    # correlation matrices
     corr_matrix_pearson = paa.vis.plot_correlation_matrix(scaled_data, screen_name, out_dir, method='pearson')
     corr_matrix_spear = paa.vis.plot_correlation_matrix(scaled_data, screen_name, out_dir, method='spearman')
+
+    # zscore visualizations: scatter and histogram plots
     paa.vis.plot_zscore_scatter(scaled_data, out_dir, corr_matrix_pearson, corr_matrix_spear)
     paa.vis.plot_zscore_hist(scaled_data, out_dir, b)
+
+    # top hits
     top_n_hits = paa.vis.top_n_hits(scaled_data, ind_dict, out_dir, n, plot=False)
     thresh_df = paa.vis.threshold_substrates(scaled_data, ind_dict, out_dir, threshold)
+
+    # specificity analyses
     paa.vis.plot_specificity_protease(agg_df, out_dir, threshold=1, plot=False, cmap=True)
     paa.vis.plot_specificity_substrate(agg_df, out_dir, threshold=1, plot=False, cmap=True)
 
