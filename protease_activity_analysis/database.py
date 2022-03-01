@@ -639,7 +639,8 @@ class SubstrateDatabase(object):
             print(f'Generating kmer dictionary for length {k}')
             self.kmer_dict[k] = paa.substrate.generate_kmers(subs, seqs, k)
             print(f'Generating kmer overlap dictionary for length {k}')
-            self.kmer_overlap[k] = paa.substrate.find_overlap(self.kmer_dict[k])
+            self.kmer_overlap[k] = paa.substrate.find_overlapping_kmers(
+                self.kmer_dict[k])
         print("Completed kmer analysis for all lengths provided.")
 
     def search_kmer(self, kmer_q, all_natural, aa_dict):

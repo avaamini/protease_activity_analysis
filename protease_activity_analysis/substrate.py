@@ -72,7 +72,7 @@ def generate_kmers(sub_list, seq_list, k):
 
     return kmer_dict
 
-def find_overlap(kmer_dict):
+def find_overlapping_kmers(kmer_dict):
     """ Returns dictionary where keys are kmers and values are substrates
     containing each kmer.
 
