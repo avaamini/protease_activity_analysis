@@ -264,7 +264,7 @@ def kinetic_visualization(data_path, screen_name, data_dir, row_dict=None,
     thresh_df = paa.vis.threshold_substrates(scaled_data, ind_dict, out_dir, threshold)
 
     # specificity analyses
-    paa.vis.plot_specificity_protease(agg_df, out_dir, threshold=1, plot=False, cmap=True)
+    paa.vis.plot_specificity_sample(agg_df, out_dir, threshold=1, plot=False, cmap=True)
     paa.vis.plot_specificity_substrate(agg_df, out_dir, threshold=1, plot=False, cmap=True)
 
     return top_n_hits, thresh_df, row_dict, ind_dict

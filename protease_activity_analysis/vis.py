@@ -645,7 +645,7 @@ def specificity_analysis(data_matrix, out_path, threshold=1):
 
     return
 
-def plot_specificity_protease(screen, out_path, threshold=1, plot=False, cmap=False):
+def plot_specificity_sample(screen, out_path, threshold=1, plot=False, cmap=False):
     """ Plots tissue specificity versus cleavage efficiency.
     Args:
             screen (pandas df) : raw screening data
