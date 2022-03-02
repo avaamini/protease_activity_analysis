@@ -645,13 +645,13 @@ def specificity_analysis(data_matrix, out_path, threshold=1):
 
     return
 
-def plot_specificity_sample(screen, out_path, threshold=1, plot=False, cmap=False):
+def plot_specificity_sample(screen, out_path, threshold=1, close_plot=True, cmap=False):
     """ Plots tissue specificity versus cleavage efficiency.
     Args:
             screen (pandas df) : raw screening data
             out_path (str): path to store the results
             threshold (float): cut-off for z-scores for labeling on plot
-            plot (bool): if True, will open the generated plot
+            close_plot (bool): if True, will close the generated plot
             cmap (bool): if True, will overlay raw intensity values for the screen on scatter plot
     """
     data_matrix = screen
@@ -701,18 +701,18 @@ def plot_specificity_sample(screen, out_path, threshold=1, plot=False, cmap=Fals
         plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
                                 query + '.pdf'))
 
-        if not plot:
+        if close_plot:
             plt.close()
 
     return
 
-def plot_specificity_substrate(screen, out_path, threshold=1, plot=False, cmap=False):
+def plot_specificity_substrate(screen, out_path, threshold=1, close_plot=True, cmap=False):
     """ Plots tissue specificity versus cleavage efficiency.
         Args:
             screen (pandas df) : raw screening data
             out_path (str): path to store the results
             threshold (float): cut-off for z-scores for labeling on plot
-            plot (bool): if True, will open the generated plot
+            close_plot (bool): if True, will close the generated plot
             cmap (bool): if True, will overlay raw intensity values for the screen on scatter plot
     """
     data_matrix = screen.transpose()
@@ -763,7 +763,7 @@ def plot_specificity_substrate(screen, out_path, threshold=1, plot=False, cmap=F
         plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
                                  query + '.pdf'))
 
-        if not plot:
+        if close_plot:
             plt.close()
 
     return
@@ -798,11 +798,12 @@ def hist(val, keys, x_label, y_label, title, identity, out_dir, plot=False):
 
 ### HELPER FUNCTIONS FOR PLOTTING & VISUALIZATION ###
 
-def aggregate_data(data_in_paths, out_path, axis=1):
+def aggregate_data(data_in_paths, out_path, name, axis=1):
     """ Combine multiple datasets into single data matrix.
     Args:
         data_in_paths (list of strings): path for datafiles
         out_path (str): path to store the results
+        name (str): name for file
         axis (boolean): axes of concatenation, with True/1 as grouping
             by common substrates (horizontal) and False/0 as grouping by common
             sample names (vertical)
@@ -812,7 +813,6 @@ def aggregate_data(data_in_paths, out_path, axis=1):
 
     # create variables to store the compiled data/name
     frame = []
-    agg_name = 'Agg'
 
     for file_path in data_in_paths:
         # identify original file name
@@ -823,7 +823,6 @@ def aggregate_data(data_in_paths, out_path, axis=1):
         data = data.iloc[1:,:]
 
         frame.append(data)
-        agg_name = agg_name + "_" + file_name
 
     # combine individual dataframes from each file into single dataframe
     agg_df = pd.concat(frame, axis=axis)
@@ -833,7 +832,7 @@ def aggregate_data(data_in_paths, out_path, axis=1):
         print('Directory created', out_path)
 
     # export aggregated dataframe as csv file
-    data_save_path = os.path.join(out_path, f"{agg_name}.csv")
+    data_save_path = os.path.join(out_path, f"{name}.csv")
     agg_df.to_csv(data_save_path)
 
     return agg_df
