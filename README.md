@@ -77,7 +77,7 @@ This tutorial describes the functionality of the 'substrate' and 'protease' subp
 The 'substrate' package is intended to help analyze and visualize peptide sequences.
 The 'protease' package has functions related to classifying proteases by class and finding protease orthologs across species.
 To demo the package, we show how to create a new instance of the SubstarteDatabase class in 'database.py' and test the different functions on all the substrate sequences in the database.
-![substrate_protease.pdf](https://github.com/apsoleimany/protease_activity_analysis/files/8173248/substrate_protease.pdf)
+![substrate_protease.pdf](https://github.com/apsoleimany/protease_activity_analysis/files/8173287/substrate_protease.pdf)
 
 
 ## Contributing
