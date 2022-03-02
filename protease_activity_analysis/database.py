@@ -677,7 +677,7 @@ class SubstrateDatabase(object):
                         all_natural,
                         aa_dict
                     )
-                    print(f"Found {sub}: {seq_i} - {colored_sequence})
+                    print(f"Found {sub}: {seq_i} - {colored_sequence}")
                     print(Style.RESET_ALL)
 
                 # summary dataframe for substrates containing kmer
@@ -722,7 +722,7 @@ class SubstrateDatabase(object):
 
         color_seq = paa.substrate.color_seq(seq, all_natural, self.aa_dict)
         print('Queried seq:')
-        print(f"{seq} - {color_seq}')
+        print(f"{seq} - {color_seq}")
         print(Style.RESET_ALL)
 
         # Find and print the top_k most similar sequences
@@ -732,7 +732,7 @@ class SubstrateDatabase(object):
             seq_name_i = top_k['Name'].iloc[i]
             seq_aa_i = top_k['Composition'].iloc[i]
             color_seq_i = paa.substrate.color_seq(seq_i, seq_aa_i, self.aa_dict)
-            print(f"{seq_name_i}: {seq_i} - {color_seq_i}"")
+            print(f"{seq_name_i}: {seq_i} - {color_seq_i}")
             print(Style.RESET_ALL)
 
         return sim_m_sorted, top_k
@@ -897,7 +897,7 @@ class SubstrateDatabase(object):
         """
         data_matrix = self.raw_screens[screen]
         prot = self.get_screen_proteases(screen)
-        query = sample_name
+        query = sample
         if query not in prot:
             raise ValueError('Enter valid sample name for inputted screen.')
 
@@ -947,8 +947,8 @@ class SubstrateDatabase(object):
 
         return
 
-    def specificity_analysis(self, sample=None, substrate=None, out_path=None,
-        threshold=2, close_plot=True, cmap=False):
+    def specificity_analysis(self, substrate=None, out_path=None,
+        threshold=2, close_plot=True, cmap=False, sample=None):
         """ Perform specificity analysis specificity versus cleavage efficiency
         for all screens in database. Generate resulting plots.
         Consider either a protease or substrate of interest.
@@ -974,11 +974,11 @@ class SubstrateDatabase(object):
             for screen in screens_with_query:
                 self.plot_specificity_sample(
                     screen,
-                    sample=query,
                     out_path,
                     threshold,
                     close_plot,
-                    cmap
+                    cmap,
+                    sample=query
                 )
         elif substrate is not None: # substrate-wise specificity analysis
             query = substrate
@@ -987,11 +987,11 @@ class SubstrateDatabase(object):
             for screen in screens_with_query:
                 self.plot_specificity_substrate(
                     screen,
-                    substrate=query,
                     out_path,
                     threshold,
                     close_plot,
-                    cmap
+                    cmap,
+                    sample=query
                 )
         else:
             raise ValueError('Enter a valid sample or substrate')

@@ -59,7 +59,7 @@ class KineticDataset:
             self.initial_rate = None
             self.initial_rate_zscore = None
             print('Initial rates set to None. Please reinitialize dataset \
-                with valid time. Valid times are: {}'.format(col.to_list())
+                with valid time. Valid times are: {}'.format(col.to_list()))
 
     def set_fc(self):
         """ Calculate fold change (FC) metrics. """
