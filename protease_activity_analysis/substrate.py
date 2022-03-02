@@ -4,6 +4,7 @@ import scipy as sp
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import os
 import scipy.stats as ss
 import csv
 import pickle
@@ -140,13 +141,14 @@ def similarity(str1, str2):
 
     return ratio, partial_ratio
 
-def similarity_matrix(subs_list, seqs_list, out_dir=None):
+def similarity_matrix(subs_list, seqs_list, out_dir=None, close_plot=False):
     """ Calculate pairwise Levenshtein similarity between all substartes in
     subs_list and return similarity matrix.
 
         Args:
             subs_list (list, str): list of all substrate names of interest
             seqs_list (list, str): list of their corresponding sequences
+            close_plot (bool): if True, close plots
             out_dir (str): directory path to save figures
         Returns:
             sim_m (pandas df): df of all subs_list x subs_list.
@@ -182,18 +184,20 @@ def similarity_matrix(subs_list, seqs_list, out_dir=None):
     plt.title('Levenshtein Similarity Ratio', fontsize=16)
     if out_dir is not None:
         plt.savefig(os.path.join(out_dir, 'sim_m.pdf'))
-    plt.close()
+    if close_plot:
+        plt.close()
 
     plt.figure()
     cluster_grid_sim_par_m = sns.clustermap(sim_par_m)
     plt.title('Partial Levenshtein Similarity Ratio', fontsize=16)
     if out_dir is not None:
         plt.savefig(os.path.join(out_dir, 'partial_sim_m.pdf'))
-    plt.close()
+    if close_plot:
+        plt.close()
 
     return sim_m, sim_par_m, cluster_grid_sim_m, cluster_grid_sim_par_m
 
-def summarize_kmer(kmer_overlap_q, top_k, out_dir=None):
+def summarize_kmer(kmer_overlap_q, top_k, kmer_len, out_dir=None, close_plot=False):
     """ Summarize data of kmers overlapping a set of substrates, according to
     their frequency of occurence. Plot histogram of kmer distribution
 
@@ -203,7 +207,9 @@ def summarize_kmer(kmer_overlap_q, top_k, out_dir=None):
                 keys: kmer sequences.
                 values: substrates containg a given kmer.
             top_k (int): the number (k) of top kmers to display
+            kmer_len (int): kmer length of interest to query
             out_dir (str): directory path for saving figure
+            close_plot (bool): if True, close plots
         Returns:
             kmer_f_sorted (pandas df): df containing kmers sorted by frequency
                 of occurrence
@@ -226,6 +232,7 @@ def summarize_kmer(kmer_overlap_q, top_k, out_dir=None):
     plt.ylabel('# kmers', fontsize=16)
     plt.title(str(kmer_len) + '-mer frequency distribution', fontsize=18)
     plt.savefig(os.path.join(out_dir, 'kmer_dist.pdf'))
-    plt.close()
+    if close_plot:
+        plt.close()
 
     return kmer_f_sorted, kmer_f_sorted_filtered

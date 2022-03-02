@@ -263,7 +263,7 @@ class SubstrateDatabase(object):
             raise KeyError(f'No kmer overlap with kmer length {k} stored. Use \
                 run_kmer_analysis() with said k prior to calling this function')
 
-    def search_protease(self, protease, out_dir=None, z_threshold=None, plot=True):
+    def search_protease(self, protease, out_dir=None, z_threshold=None, plot=False):
         """ Return df of substrates and their cleavage by a given protease
 
         Args:
@@ -437,7 +437,7 @@ class SubstrateDatabase(object):
         if query_type == 'protease':
             query_df = self.search_protease(query, out_dir, z_threshold)
         elif query_type == 'substrate':
-            query_df = self.search_substrate(query, out_dir, z_threshold)
+            query_df, sub = self.search_substrate(query, out_dir, z_threshold)
         elif query_type == 'sequence':
             query_df = self.search_sequence(query, out_dir, z_threshold)
         else:
@@ -485,7 +485,7 @@ class SubstrateDatabase(object):
 
         top_k_overall = pd.concat(individual_dfs)
         top_k_overall.sort_values(by='Scores', ascending=False, inplace=True)
-        top_k_overall = top_k_overall[:top_k]
+        top_k_overall = top_k_overall[:k]
 
         if query_type == 'protease':
             top_k_individual = top_k_individual.reset_index()
@@ -517,14 +517,14 @@ class SubstrateDatabase(object):
             top_k_individual.to_csv(
                 os.path.join(
                     out_dir,
-                    f"{query}_{z_threshold}_{top_k}_individual.csv"
+                    f"{query}_{z_threshold}_{k}_individual.csv"
                 )
             )
 
             top_k_overall.to_csv(
                 os.path.join(
                     out_dir,
-                    f"{query}_{z_threshold}_{top_k}_overall.csv"
+                    f"{query}_{z_threshold}_{k}_overall.csv"
                 )
             )
 
@@ -576,8 +576,10 @@ class SubstrateDatabase(object):
         ax1.set_ylabel('# Peptides', fontsize=18)
         plt.xticks(rotation=45, ha='right', fontsize=15)
         ax1.legend(prop={'size': 11})
-        file_path = os.path.join(out_dir, 'summary_screens.pdf')
-        ax1.figure.savefig(file_path)
+        if out_dir:
+            print('in loop')
+            file_path = os.path.join(out_dir, 'summary_screens.pdf')
+            ax1.figure.savefig(file_path)
         plt.show()
         if close_plot:
             plt.close()
@@ -604,8 +606,10 @@ class SubstrateDatabase(object):
         ax.set_title('#Proteases/screen by class', fontsize=20)
         plt.xticks(rotation=45, ha='right', fontsize=15)
         ax.legend(prop={'size': 11})
-        file_path = os.path.join(out_dir, 'summary_protease.pdf')
-        ax.figure.savefig(file_path)
+        if out_dir:
+            print('in loop')
+            file_path = os.path.join(out_dir, 'summary_protease.pdf')
+            ax.figure.savefig(file_path)
         plt.show()
 
         if close_plot:
@@ -737,13 +741,14 @@ class SubstrateDatabase(object):
 
         return sim_m_sorted, top_k
 
-    def get_similarity_matrix(self, out_dir=False):
+    def get_similarity_matrix(self, out_dir=False, close_plot=False):
         """ Calculate pairwise similarity (Levenshtein) between substrates in
         database.
         Return and plot similarity matrices.
 
             Args:
                 out_dir (str): directory path to save figures
+                close_plot (bool): if True, close plots
             Returns:
                 sim_m (pandas df): df of all subs_list x subs_list.
                     Pairwise Levenshtein distance similarity ratio.
@@ -757,11 +762,11 @@ class SubstrateDatabase(object):
         subs_list = self.database.iloc[:, 0].to_list()
         seqs_list = self.database['Sequence'].to_list()
         sim_m, sim_par_m, cluster_grid_sim_m, cluster_grid_sim_par_m = \
-            paa.substrate.similarity_matrix(subs_list, seqs_list, out_dir)
+            paa.substrate.similarity_matrix(subs_list, seqs_list, out_dir, close_plot)
 
         return sim_m, sim_par_m, cluster_grid_sim_m, cluster_grid_sim_par_m
 
-    def summarize_kmer(self, kmer_len, top_k, out_dir):
+    def summarize_kmer(self, kmer_len, top_k, out_dir, close_plot=False):
         """ Summarize data of kmers overlapping the database, according to
         their frequency of occurence. Plot histogram of kmer distribution
 
@@ -769,6 +774,7 @@ class SubstrateDatabase(object):
                 kmer_len (int): kmer length of interest to query
                 top_k (int): the number (k) of top kmers to display
                 out_dir (str): directory path for saving figure
+                close_plot (bool): if True, close plots
             Returns:
                 kmer_f_sorted (pandas df): df of kmers sorted by frequency
                     of occurrence in database
@@ -781,7 +787,9 @@ class SubstrateDatabase(object):
         kmer_f_sorted, kmer_f_sorted_filtered = paa.substrate.summarize_kmer(
             kmer_overlap_q,
             top_k,
-            out_dir
+            kmer_len,
+            out_dir,
+            close_plot
         )
 
         return kmer_f_sorted, kmer_f_sorted_filtered
@@ -947,8 +955,8 @@ class SubstrateDatabase(object):
 
         return
 
-    def specificity_analysis(self, substrate=None, out_path=None,
-        threshold=2, close_plot=True, cmap=False, sample=None):
+    def specificity_analysis(self, out_path=None, sample=None, substrate=None,
+        threshold=2, close_plot=True, cmap=False):
         """ Perform specificity analysis specificity versus cleavage efficiency
         for all screens in database. Generate resulting plots.
         Consider either a protease or substrate of interest.
@@ -969,16 +977,16 @@ class SubstrateDatabase(object):
             return
         elif sample is not None: # sample-wise specificity analysis
             query = sample
-            query_df = self.search_protease(query)
+            query_df = self.search_protease(query, plot=False)
             screens_with_query = list(query_df.columns)
             for screen in screens_with_query:
                 self.plot_specificity_sample(
                     screen,
+                    query,
                     out_path,
                     threshold,
                     close_plot,
-                    cmap,
-                    sample=query
+                    cmap
                 )
         elif substrate is not None: # substrate-wise specificity analysis
             query = substrate
@@ -987,11 +995,11 @@ class SubstrateDatabase(object):
             for screen in screens_with_query:
                 self.plot_specificity_substrate(
                     screen,
+                    query,
                     out_path,
                     threshold,
                     close_plot,
-                    cmap,
-                    sample=query
+                    cmap
                 )
         else:
             raise ValueError('Enter a valid sample or substrate')
