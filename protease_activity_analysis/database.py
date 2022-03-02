@@ -882,7 +882,7 @@ class SubstrateDatabase(object):
         adjust_text(text, force_points=4, arrowprops=dict(arrowstyle="-",
             color="k", lw=0.5))
         plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
-                                 query + '_' + screen + '.png'))
+                                 query + '_' + screen + '.pdf'))
 
         if close_plot:
             plt.close()
@@ -948,7 +948,7 @@ class SubstrateDatabase(object):
         adjust_text(text, force_points=4, arrowprops=dict(
             arrowstyle="-", color="k", lw=0.5))
         plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
-                                 query + '_' + screen + '.png'))
+                                 query + '_' + screen + '.pdf'))
 
         if close_plot:
             plt.close()
