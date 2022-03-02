@@ -32,18 +32,10 @@ def color_seq(ex_sub, all_natural, aa_dict):
     len_ex_sub = len(ex_sub)
 
     if all_natural:
-        # TODO: why was this originally restricted to length <= 14? shouldnt it be
-        #   restricted according to the number of unique AAs / individual colors,
-        #   not the length of the sequence? it will throw an error if wrong.
         color_sub_list = [aa_dict[char] for char in ex_sub]
         color_sub = "".join(color_sub_list)
 
-        # TODO: rectify the length issue
-        # print('Substrate length out of range')
-        # print(Style.RESET_ALL)
-        # # print(ex_sub)
-        # color_sub = ex_sub
-    else: # contains un-natural amino acids. reset to standard color
+    else:  # contains un-natural amino acids. reset to standard color
         print(Style.RESET_ALL)
         color_sub = ex_sub
 
