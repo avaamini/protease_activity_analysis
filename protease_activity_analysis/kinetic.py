@@ -105,13 +105,13 @@ class KineticDataset:
         z_s = ((data - data.mean()) / data.std(ddof=0))
         return z_s
 
-    def plot_kinetic(self, kinetic_data, title, ylabel, plot=False):
+    def plot_kinetic(self, kinetic_data, title, ylabel, close_plot=False):
         """ Plot trajectory of kinetic data.
         Args:
             kinetic_data (df): data plot
             title (str): name for the plot
             ylabel (str): label for the y-axis
-            plot (bool): if True, open the plot window
+            close_plot (bool): if True, close the plot window
         Returns:
             ax (matplotlib axes): the plot
         """
@@ -144,7 +144,7 @@ class KineticDataset:
             f"{title}_{ylabel}_kinetic.pdf")
         ax.figure.savefig(file_path)
 
-        if not plot:
+        if close_plot:
             plt.close()
 
         return ax
