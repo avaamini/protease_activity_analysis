@@ -1,3 +1,5 @@
+[![banner](img/PAA_logo.pdf)](https://www.lmrt.mit.edu/)
+
 # Protease Activity Analysis (PAA)
 Analyzing the activity of proteases and their substrates is critical to defining the
 biological functions of these enzymes and to designing new diagnostics and therapeutics
