@@ -1,5 +1,5 @@
 <p align="center" >
-  <img src="img/PAA_logo_white.png" alt="logo" width="400" />
+  <img src="img/PAA_logo.pdf" alt="logo" width="400" />
 </p>
 
 # Protease Activity Analysis (PAA)
