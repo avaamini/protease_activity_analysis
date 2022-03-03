@@ -14,7 +14,9 @@ The SubstrateDatabase class enables to:
 - Assessment of degree of similarity between all substrates in the database
 - Search for k-mer motifs across all sequences in the database
 
-![database.pdf](https://github.com/apsoleimany/protease_activity_analysis/files/8173160/database.pdf)
+<p align="center">
+  <img src="img/database.png" alt="database" width="800" />
+</p>
 
 
 ## Kinetic Analaysis Tutorial
@@ -26,7 +28,10 @@ In this tutorial you will learn how to:
 - Plot and analyze data from each independent fluorogenic run.
 - Aggregate summary data outputs form individual runs to generate a matrix of samples of interest vs. peptides of interest.
 - Plot aggregated data using relevant visualization tools.
-![kinetic.pdf](https://github.com/apsoleimany/protease_activity_analysis/files/8173193/kinetic.pdf)
+
+<p align="center">
+  <img src="img/kinetic.png" alt="kinetic" width="800" />
+</p>
 
 
 ## Substrate and Protease Tutorial
@@ -35,4 +40,7 @@ This tutorial describes the functionality of the 'substrate' and 'protease' subp
 The 'substrate' package is intended to help analyze and visualize peptide sequences.
 The 'protease' package has functions related to classifying proteases by class and finding protease orthologs across species.
 To demo the package, we show how to create a new instance of the SubstarteDatabase class in 'database.py' and test the different functions on all the substrate sequences in the database.
-![substrate_protease.pdf](https://github.com/apsoleimany/protease_activity_analysis/files/8173287/substrate_protease.pdf)
+
+<p align="center">
+  <img src="img/substrate_protease.png" alt="sub_prot" width="800" />
+</p>
