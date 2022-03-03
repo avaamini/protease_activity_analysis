@@ -17,7 +17,7 @@ The SubstrateDatabase class enables to:
 ![database.pdf](https://github.com/apsoleimany/protease_activity_analysis/files/8173160/database.pdf)
 
 
-## Kinetic Analaysis Tutorial
+## Kinetic Analysis Tutorial
 This tutorial describes the functionality of the 'kinetic' subpackage of the PAA repo. The subpackage incorporates the KineticDataset class that provides a framework to load and analyze raw data files from multiplexed fluorogenic assays generated directly by measurement instruments (e.g., fluorimeters). Additionally, the package supports visualization of inputs from retrospective screens, for which a matrix summarizing cleavage efficiencies across a set of samples may have already been produced.
 
 To demo the package, we show how to load raw files from a retrospective in vitro screen of a panel of lung cancer-associated recombinant proteases against a panel of 14 peptide substrate from the Bhatia Lab (Kirkpatrick et al., STM, 2020). 
@@ -36,3 +36,9 @@ The 'substrate' package is intended to help analyze and visualize peptide sequen
 The 'protease' package has functions related to classifying proteases by class and finding protease orthologs across species.
 To demo the package, we show how to create a new instance of the SubstarteDatabase class in 'database.py' and test the different functions on all the substrate sequences in the database.
 ![substrate_protease.pdf](https://github.com/apsoleimany/protease_activity_analysis/files/8173287/substrate_protease.pdf)
+
+## In vivo tutorial 
+
+In this demonstration, you are going to see how to: 1) Convert raw mass spectrometry data into a data matrix that can be used for downstream analysis 2) Normalize this matrix based on your specifications 3) Visualize the relative reporter concentrations using PCA and volcano plots 4) Use the reporter concentrations to train a classifier, perform cross-validation, and test on another dataset
+
+This data comes from Kirkpatrick et al., Science Translational Medicine (2020). The data is from healthy and lung cancer mice that were injected with a 14-plex activity-based nanosensor panel at 5 weeks, 7.5 weeks, and 10.5 weeks after tumor initiation.
