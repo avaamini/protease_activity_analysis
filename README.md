@@ -1,5 +1,5 @@
 <p align="center" >
-  <img src="img/PAA_logo_white.png" alt="logo" width="400" href="https://lmrt.mit.edu/"/>
+  <img src="img/PAA_logo_white.png" alt="logo" width="400" />
 </p>
 
 # Protease Activity Analysis (PAA)
