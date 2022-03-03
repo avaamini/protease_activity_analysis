@@ -5,7 +5,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-from sklearn import svm, model_selection, metrics, ensemble, linear_model, feature_selection
+from sklearn import svm, model_selection, metrics, ensemble, linear_model, \
+    feature_selection, pipeline
+from sklearn.model_selection import StratifiedKFold, cross_val_score, \
+    train_test_split
 from sklearn.preprocessing import StandardScaler
 
 def get_scaler(batch):
@@ -52,7 +55,7 @@ def multiclass_classify(X, Y, model_type, kernel, k_splits, save_path,
 
     """
     # splits for k-fold cross validation
-    cv = model_selection.StratifiedKFold(n_splits=k_splits)
+    cv = StratifiedKFold(n_splits=k_splits)
 
     probs_val = []
     scores_val = []
@@ -82,7 +85,7 @@ def multiclass_classify(X, Y, model_type, kernel, k_splits, save_path,
         # X_val = X[val]
         # Y_val = Y[val]
 
-        X_train, X_val, Y_train, Y_val = model_selection.train_test_split(
+        X_train, X_val, Y_train, Y_val = train_test_split(
             X, Y, test_size=0.2, shuffle=True, stratify=Y
         )
 
@@ -179,7 +182,7 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
             auc: ROC AUC for each fold of cross validation
     """
     # splits for k-fold cross validation
-    cv = model_selection.StratifiedKFold(n_splits=k_splits)
+    cv = StratifiedKFold(n_splits=k_splits)
 
     # prediction outputs
     probs_val = []
@@ -211,10 +214,10 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
         # Y_train = Y[train]
         # X_val = X[val]
         # Y_val = Y[val]
-        X_train, X_val, Y_train, Y_val = model_selection.train_test_split(
+        X_train, X_val, Y_train, Y_val = train_test_split(
             X, Y, test_size=0.2, shuffle=True, stratify=Y
         )
-
+        
         # feature scaling for standardization. compute scaler on training set.
         if standard_scale:
             scaler = get_scaler(X_train)
@@ -248,7 +251,7 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
             scores_test.append(score_test)
             tprs_test.append(interp_tpr_test)
             aucs_test.append(auc_test)
-
+  
     ## TODO: could possibly change this to a data frame
     val_dict = {"probs": probs_val, "scores": scores_val,
         "tprs": tprs_val, "aucs": aucs_val}
@@ -284,59 +287,108 @@ def classify(classifier, X, Y, pos_class):
 
     return prob, score, preds, interp_tpr, auc
 
+def rfe_cv(X, Y, class_type, k_splits, out_path, save_name, standard_scale=False):
+    """ Recursive feature elimination. Evaluate the accuracy of the model with
+    select number of features and plot # of features vs. accuracy.
 
-## TODO: fix this
-# def rfe_analysis(X, Y, class_type, kernel, k_splits, out_path, save_name,
-#     standard_scale=False):
-#     """Recursive feature elimination. Tunes the number of features selected
-#             using k-fold cross validation.
-#
-#     Args:
-#         X: full dataset (n x m) where n is the number of samples and m is the
-#             number of features. Includes samples for both train/test.
-#         Y: true labels (n x j), where n is the number of samples and j is the
-#             number of classes. Includes labels for both train/test.
-#         class_type ("svm", "rf", "lr"): type of classifier
-#         kernel ("linear", "poly", "rbf"): type of kernel for svm
-#         k_splits: number of splits for cross validation
-#         out_path: path to save file
-#         save_name (str): string token for file saving
-#         standard_scale (bool): whether to employ feature standardization
-#
-#     Returns:
-#
-#     """
-#     # splits for k-fold cross validation
-#     cross_val = model_selection.StratifiedKFold(n_splits=k_splits)
-#
-#     if class_type == "svm": # support vector machine with kernel
-#         classifier = svm.SVC(kernel=kernel, probability=True)
-#     elif class_type == "rf": # random forest classifier
-#         classifier = ensemble.RandomForestClassifier(max_depth=2)
-#     elif class_type == "lr": # logistic regression with L2 loss
-#         classifier = linear_model.LogisticRegression()
-#
-#     # use accuracy, which is reflective of number of correct classifications
-#     rfe_cv = feature_selection.RFECV(estimator=classifier, step=1, \
-#         cv=cross_val, scoring='accuracy')
-#
-#     if standard_scale:
-#         # applies a blanket scaler to all data...
-#         scaler = get_scaler(X)
-#         X = scaler.transform(X)
-#
-#     rfe_cv.fit(X, Y)
-#     # print("Optimal number of features : %d" % rfe_cv.n_features_)
-#
-#     ## Plot # of reporters vs. accuracy
-#     g = sns.lineplot(x=range(1, len(rfe_cv.grid_scores_)+1), y=rfe_cv.grid_scores_)
-#     g.set_xlabel('Number of reporters', fontsize=12)
-#     g.set_ylabel('Cross validation accuracy', fontsize=12)
-#     g.set_xticks(range(1, len(rfe_cv.grid_scores_)+1))
-#     g.set_title('Recursive feature elimination')
-#
-#     file = save_name + "_rfe.pdf"
-#     fig = g.get_figure()
-#     fig.savefig(os.path.join(out_path, file))
-#
-#     return
+    Args:
+        X: full dataset (n x m) where n is the number of samples and m is the
+            number of features. Includes samples for both train/test.
+        Y: true labels (n x j), where n is the number of samples and j is the
+            number of classes. Includes labels for both train/test.
+        class_type ("svm", "rf", "lr"): type of classifier. for SVM, uses linear
+            kernel
+        k_splits: number of splits for cross validation
+        out_path: path to save file
+        save_name (str): string token for file saving
+        standard_scale (bool): whether to employ feature standardization
+
+    """
+
+    if class_type == "svm": # support vector machine with kernel
+        classifier = svm.SVC(kernel='linear', probability=True)
+    elif class_type == "rf": # random forest classifier
+        classifier = ensemble.RandomForestClassifier(max_depth=2)
+    elif class_type == "lr": # logistic regression with L2 loss
+        classifier = linear_model.LogisticRegression()
+
+    def get_models(base_model, max_features):
+        """ Get models with varying numbers of features used.
+
+        Args:
+            base_model (sklearn model): base model type (e.g., SVM)
+            max_features (int): maximum number of features allowed in the RFE
+        Returns:
+            models (dict): mapping # features used in model -> model RFE pipeline
+        """
+        models = dict()
+        for i in range(2, max_features+1):
+            rfe = feature_selection.RFE(estimator=base_model, n_features_to_select=i)
+            models[str(i)] = pipeline.Pipeline(steps=[('s',rfe),('m',base_model)])
+        return models
+
+    # evaluate a classifier using cross-validation
+    def classify_cv(model, X, Y):
+        """ Evaluate classifier using cross-validation.
+
+        Args:
+            model (sklearn model): classifier to evaluate
+            X (np array): n x m, num samples x num features
+            Y (np array): n x 1, num samples and their class labels
+        Returns:
+            accuracies (nd array): accuracies for each run of the cross-validation
+            aucs (nd array): ROC AUCs for each run of the cross-validation
+        """
+        cv = model_selection.RepeatedStratifiedKFold(n_splits=k_splits, n_repeats=3)
+        accuracies = cross_val_score(
+            model, X, Y, scoring='accuracy', cv=cv, error_score='raise'
+        )
+        aucs = cross_val_score(
+            model, X, Y, scoring='roc_auc', cv=cv, error_score='raise'
+        )
+        return accuracies, aucs
+    
+    # evaluate the models and store results
+    res_accuracies, res_aucs, names = list(), list(), list()
+    mean_accuracies, mean_aucs, std_accuracies, std_aucs = list(), list(), list(), list()
+    num_features = X.shape[1]
+    classifiers = get_models(classifier, num_features)
+
+    for name, model in classifiers.items():
+        accuracies, aucs = classify_cv(model, X, Y)
+        res_accuracies.append(accuracies)
+        res_aucs.append(aucs)
+        names.append(name)
+
+        print('>%s Accuracy: %.3f (%.3f)' % (
+            name, np.mean(res_accuracies), np.std(res_accuracies)))
+        print('>%s AUC: %.3f (%.3f)' % (
+            name, np.mean(res_aucs), np.std(res_aucs)))
+
+        mean_accuracies.append((np.mean(res_accuracies)))
+        std_accuracies.append((np.std(res_accuracies)))
+        mean_aucs.append((np.mean(res_aucs)))
+        std_aucs.append((np.std(res_aucs)))
+
+    # Plot num features vs. accracy/auc
+    fig, ax = plt.subplots()
+    #ax.boxplot(res_accuracies, labels=names)
+    ax.errorbar(names,mean_accuracies, std_accuracies)
+    ax.set_xlabel('Number of Features', fontsize = 15)
+    ax.set_ylabel('Accuracy', fontsize = 15)
+    fig = ax.get_figure()
+    file = save_name + "_RFE_accuracy.pdf"
+    fig.savefig(os.path.join(out_path, file))
+    plt.close()
+
+    fig, ax = plt.subplots()
+    #ax.boxplot(res_aucs, labels=names)
+    ax.errorbar(names,mean_aucs, std_aucs)
+    ax.set_xlabel('Number of Features', fontsize = 15)
+    ax.set_ylabel('ROC AUC', fontsize = 15)
+    fig = ax.get_figure()
+    file = save_name + "_RFE_auc.pdf"
+    fig.savefig(os.path.join(out_path, file))
+    plt.close()
+
+    return

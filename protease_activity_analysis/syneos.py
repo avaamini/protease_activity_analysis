@@ -94,8 +94,7 @@ class SyneosDataset:
         self.raw_data_matrix = data_matrix
         return data_matrix
 
-    def process_syneos_data(self, features_to_use, stock_id,
-        sample_type_to_use=None, sample_ID_to_use=None, sample_ID_to_exclude=None):
+    def process_syneos_data(self, features_to_use, stock_id, sample_type_to_use, sample_ID_to_use, sample_ID_to_exclude):
         """ Process syneos data. Keep relevant features and samples.
 
         Args:
@@ -152,20 +151,15 @@ class SyneosDataset:
 
         # eliminate those samples that do not meet the sample type name criterion
         if sample_type_to_use != None:
-            filtered_matrix = filtered_matrix[filtered_matrix['Sample Type'].isin(
-                sample_type_to_use)
-            ]
+            filtered_matrix = filtered_matrix[filtered_matrix['Sample Type'].isin(sample_type_to_use)]
 
         # eliminate those samples that do not meet the sample ID name criterion
         if sample_ID_to_use != None:
-            filtered_matrix = filtered_matrix[filtered_matrix['Sample ID'].str.contains(
-                sample_ID_to_use)]
+            filtered_matrix = filtered_matrix[filtered_matrix['Sample ID'].str.contains(sample_ID_to_use)]
 
         # eliminate those samples that are specified for exclusion
         if sample_ID_to_exclude != None:
-            filtered_matrix = filtered_matrix[~filtered_matrix['Sample ID'].isin(
-                sample_ID_to_exclude)
-            ]
+            filtered_matrix = filtered_matrix[~filtered_matrix['Sample ID'].isin(sample_ID_to_exclude)]
 
         filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
         filtered_matrix.to_csv(

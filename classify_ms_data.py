@@ -86,13 +86,13 @@ if args.multi_class is not None:
             # plot confusion matrix
             save_name_val = args.save_name + "_crossval_" + classifier_name
             paa.vis.plot_confusion_matrix(val_df, classes, classes, args.save_dir,
-                save_name_val)
+                save_name_val, cmap='Purples')
 
             if independent_test:
                 test_classes = np.unique(Y_test)
                 save_name_test = args.save_name + "_test_" + classifier_name
                 paa.vis.plot_confusion_matrix(test_df, classes, test_classes,
-                    args.save_dir, save_name_test)
+                    args.save_dir, save_name_test, cmap='Greens')
 
 else: # Binary classification with k fold cross validation
 
@@ -148,8 +148,8 @@ else: # Binary classification with k fold cross validation
                 paa.vis.plot_kfold_roc(tprs_test, aucs_test,
                     args.save_dir, save_name_test, show_sd=True)
 
-            # Recursive feature elimination analysis ONLY with rf, lr, linear svm
-            if classifier == "svm" and kernel != "linear":
+            # recursive feature elimination -- ONLY with rf, lr, svm linear!
+            if classifier == 'svm' and kernel != 'linear':
                 break
-            paa.classify.recursive_feature_elimination(X, Y,
-                classifier, kernel, args.num_folds, args.save_dir, save_name_val)
+            paa.classify.rfe_cv(X, Y, classifier, args.num_folds,
+                args.save_dir, save_name_val)

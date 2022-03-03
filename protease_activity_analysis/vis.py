@@ -167,7 +167,7 @@ def plot_pca(data_matrix, features, group_key, pca_groups, biplot,
     fig.savefig(os.path.join(out_path, file))
     plt.close()
 
-    return
+    return fig
 
 def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_name):
     """ Volcano plot for differential enrichment of features between two groups.
@@ -243,8 +243,7 @@ def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_na
     adjust_text(texts)
 
     ax.set_xlabel(
-        'Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')',
-        fontname='Arial', fontsize = 20)
+        'Fold change (' + ' '.join(group2) + '/' + ' '.join(group1) +')')
     ax.set_ylabel('-log\u2081\u2080(P\u2090)', fontsize = 20)
     left,right = ax.get_xlim()
     ax.set_xlim(left=0, right = np.ceil(right))
@@ -261,7 +260,7 @@ def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_na
     fig.savefig(os.path.join(out_path, file))
     plt.close()
 
-    return
+    return fig
 
 def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
     cmap):
@@ -288,10 +287,9 @@ def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
     file_name = file_name + "_confusion.pdf"
     fig = g.get_figure()
     fig.savefig(os.path.join(out_path, file_name))
-    fig.clf()
     plt.close(fig)
 
-    return
+    return fig
 
 def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     """Plots mean ROC curve + standard deviation boundary from k-fold cross val.
@@ -335,7 +333,7 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     fig.savefig(os.path.join(out_path, file))
     plt.close()
 
-    return
+    return fig
 
 def plot_matrix(data_matrix):
     """ Visualizes protease activity data matrix as heatmap.
@@ -469,6 +467,7 @@ def plot_heatmap(data_matrix, out_path, row_colors=None, col_colors=None, center
 
 def plot_correlation_matrix(data_matrix, title, out_path, method = 'pearson'):
     """ Plot correlation matrix of protease activity data.
+    
     Args:
         data_matrix (pandas df): (normalized) cleavage data for tissue
             samples or proteases across columns and substrate across rows
@@ -481,12 +480,12 @@ def plot_correlation_matrix(data_matrix, title, out_path, method = 'pearson'):
             of sample comparisons
     """
     sns.set(font_scale=1.2)
-
     fig = plt.figure(figsize=(12,10), dpi=200, facecolor='w', edgecolor='k')
     corr_matrix = data_matrix.corr(method = method)
     sns.heatmap(corr_matrix, annot=True)
     plt.title(str(title)+' - '+method+ ' correlation')
     plt.tight_layout()
+
     fig.savefig(os.path.join(out_path, title+'_corrmat_'+method+'.pdf'))
 
     sns.set(font_scale=1.5)
@@ -495,6 +494,7 @@ def plot_correlation_matrix(data_matrix, title, out_path, method = 'pearson'):
 
 def plot_zscore_scatter(data, out_path, corr_matrix_pearson, corr_matrix_spear):
     """ Plot scatter of z-scored protease activity data.
+
     Args:
         data_matrix (pandas df): (normalized) cleavage data for tissue
             samples or proteases across columns and substrate across rows
@@ -525,20 +525,22 @@ def plot_zscore_scatter(data, out_path, corr_matrix_pearson, corr_matrix_spear):
             ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
                     verticalalignment='top', bbox=props)
             plt.tight_layout()
-            fig.savefig(os.path.join(out_path, 'scatter_' + str(data.columns[col])
-                                     + '_vs_' + str(data.columns[y])+'.pdf'))
+            col_i = data.columns[col]
+            col_y = data.columns[y]
+            fig.savefig(os.path.join(out_path, f'scatter_{col_i}_vs_{col_y}.pdf')
             plt.close()
     return
 
-def plot_zscore_hist(data_matrix, out_path, b=15, plot=False):
+def plot_zscore_hist(data_matrix, out_path, b=15, close_plot=True):
     """ Plot distribution of z-scores with histograms for each column
     (sample/protease).
+
     Args:
         data_matrix (pandas dataframe): (normalized) cleavage data for tissue
             samples or proteases across columns and substrate across rows
         out_path (str): path to store the results
         b (int): number of bins in plotting histogram
-        plot (bool): whether or not to display the resulting plot.
+        close_plot (bool): if True close the resulting plot.
     """
 
     for col in data_matrix.columns:
@@ -550,7 +552,7 @@ def plot_zscore_hist(data_matrix, out_path, b=15, plot=False):
         plt.tight_layout()
         plt.savefig(os.path.join(out_path, 'hist_'+col+'.pdf'))
 
-    if not plot:
+    if close_plot:
         plt.close()
 
     return
@@ -558,7 +560,8 @@ def plot_zscore_hist(data_matrix, out_path, b=15, plot=False):
 def plot_substrate_class_pie(thr_df, dict_df, color_dict, out_path):
     """ Plots pie charts of the proportions of classes that cleaved substrates
     are in.
-    Args (TO-DO):
+    
+    Args:
         thr_df (pandas df): list of substrates that are significantly cleaved
             (above z-score threshold)
         dict_df (pandas df): substrate name with corresponding class label
@@ -768,7 +771,7 @@ def plot_specificity_substrate(screen, out_path, threshold=1, close_plot=True, c
 
     return
 
-def hist(val, keys, x_label, y_label, title, identity, out_dir, plot=False):
+def hist(val, keys, x_label, y_label, title, identity, out_dir, close_plot=True):
     """ Specific histogram plotting function for database.py
     Args:
         val (list, array): Contains values those frequency to be plotted
@@ -778,7 +781,7 @@ def hist(val, keys, x_label, y_label, title, identity, out_dir, plot=False):
         title (str): title of histogram
         identity (str): identity of protease or susbtrate
         out_dir (str): output directory to save files to
-        plot (bool): if True, will open the generated plot
+        close_plot (bool): if True, will close the generated plot
     """
     fig, ax = plt.subplots()
     n, bins, patches = plt.hist(val, alpha=0.75)
@@ -791,7 +794,7 @@ def hist(val, keys, x_label, y_label, title, identity, out_dir, plot=False):
     if out_dir:
         fig.savefig(out_dir + '/' + identity + '_histogram_zscore.pdf')
 
-    if not plot:
+    if close_plot:
         plt.close()
 
     return
@@ -873,6 +876,7 @@ def scale_data(data_matrix):
 
 def top_n_hits(data_matrix, ind_dict, out_path, n=5):
     """ Find top n cleaved substrates for each column (sample/protease).
+
     Args:
         data_matrix (pandas dataframe): (normalized) cleavage data for tissue
             samples or proteases across columns and substrate across rows
@@ -904,6 +908,7 @@ def top_n_hits(data_matrix, ind_dict, out_path, n=5):
 
 def threshold_substrates(data_matrix, ind_dict, out_path, threshold=1):
     """ Ranks all cleaved probes above z-score threshold.
+
     Args:
         data_matrix (pandas dataframe): (normalized) cleavage data for tissue
             samples or proteases across columns and substrate across rows

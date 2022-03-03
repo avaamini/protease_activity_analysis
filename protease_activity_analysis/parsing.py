@@ -71,7 +71,7 @@ def add_ms_args(parser: ArgumentParser):
         help='type of classifier: svm, rf (random forest), lr (logistic regression)')
     parser.add_argument('--kernel', type=str, nargs="*", default=['linear'],
         help='type of kernel for svm: linear, rbf, poly')
-    parser.add_argument('--num_folds', type=int, default=10,
+    parser.add_argument('--num_folds', type=int, default=5,
         help='number of folds for cross validation')
     parser.add_argument('--val_split', type=float, default=0.2,
         help='percent of training set for validation')

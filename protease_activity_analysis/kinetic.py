@@ -196,7 +196,6 @@ class KineticDataset:
         """ Getter for initial rate, z-scored """
         return self.initial_rate_zscore
 
-
 # removed col_dict for simplicity
 def kinetic_visualization(data_path, screen_name, data_dir, row_dict=None,
                           n=5, b=15, threshold=1, drop_neg=True):
