@@ -1,5 +1,5 @@
 # PAA Tutorials
-To get started using PAA, we recommend you select the tutorial in the 'Notebooks' folder that is most aligned with your application of interest. 
+To get started using PAA, we recommend you select the tutorial that is most aligned with your application of interest. You will need the conda environment installed as well as support to run Jupyter notebooks, for example in your browser or in JupyterLab.
 
 ## Database Tutorial
 This tutorial describes the functionality of the 'database' subpackage of the PAA repo. The subpackage incorporates the SubstrateDatabase class that provides a framework to load and query datasets of protease-substrate activity.
