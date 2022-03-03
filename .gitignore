@@ -4,8 +4,6 @@
 
 # Data
 data/
-stm_data/
-protease_activity_analysis/tests/data
 
 # outputs et al
 outputs/
