@@ -40,15 +40,16 @@ This tutorial describes the functionality of the 'substrate' and 'protease' subp
 The 'substrate' package is intended to help analyze and visualize peptide sequences.
 The 'protease' package has functions related to classifying proteases by class and finding protease orthologs across species.
 To demo the package, we show how to create a new instance of the SubstarteDatabase class in 'database.py' and test the different functions on all the substrate sequences in the database.
-<<<<<<< HEAD
-![substrate_protease.pdf](https://github.com/apsoleimany/protease_activity_analysis/files/8173287/substrate_protease.pdf)
+
+<p align="center">
+  <img src="img/substrate_protease.png" alt="sub_prot" width="800" />
+</p>
 
 ## In vivo tutorial 
 
-In this demonstration, you are going to see how to: 1) Convert raw mass spectrometry data into a data matrix that can be used for downstream analysis 2) Normalize this matrix based on your specifications 3) Visualize the relative reporter concentrations using PCA and volcano plots 4) Use the reporter concentrations to train a classifier, perform cross-validation, and test on another dataset
+In this demonstration, you are going to see how to: 1) Convert raw mass spectrometry data into a data matrix that can be used for downstream analysis 2) Normalize this matrix based on your specifications 3) Visualize the relative reporter concentrations using PCA and volcano plots 4) Use the reporter concentrations to train a classifier, perform cross-validation, and test on another dataset.
 
 This data comes from Kirkpatrick et al., Science Translational Medicine (2020). The data is from healthy and lung cancer mice that were injected with a 14-plex activity-based nanosensor panel at 5 weeks, 7.5 weeks, and 10.5 weeks after tumor initiation.
-=======
 
 <p align="center">
   <img src="img/substrate_protease.png" alt="sub_prot" width="800" />
