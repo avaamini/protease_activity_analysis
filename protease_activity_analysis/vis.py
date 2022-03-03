@@ -467,7 +467,7 @@ def plot_heatmap(data_matrix, out_path, row_colors=None, col_colors=None, center
 
 def plot_correlation_matrix(data_matrix, title, out_path, method = 'pearson'):
     """ Plot correlation matrix of protease activity data.
-    
+
     Args:
         data_matrix (pandas df): (normalized) cleavage data for tissue
             samples or proteases across columns and substrate across rows
@@ -527,8 +527,9 @@ def plot_zscore_scatter(data, out_path, corr_matrix_pearson, corr_matrix_spear):
             plt.tight_layout()
             col_i = data.columns[col]
             col_y = data.columns[y]
-            fig.savefig(os.path.join(out_path, f'scatter_{col_i}_vs_{col_y}.pdf')
+            fig.savefig(os.path.join(out_path, f'scatter_{col_i}_vs_{col_y}.pdf'))
             plt.close()
+
     return
 
 def plot_zscore_hist(data_matrix, out_path, b=15, close_plot=True):
@@ -560,7 +561,7 @@ def plot_zscore_hist(data_matrix, out_path, b=15, close_plot=True):
 def plot_substrate_class_pie(thr_df, dict_df, color_dict, out_path):
     """ Plots pie charts of the proportions of classes that cleaved substrates
     are in.
-    
+
     Args:
         thr_df (pandas df): list of substrates that are significantly cleaved
             (above z-score threshold)

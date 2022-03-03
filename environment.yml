@@ -16,5 +16,7 @@ dependencies:
     - plotnine
     - adjusttext
     - xlrd
+    - fuzzywuzzy
+    - python-Levenshtein
 
 prefix: /Users/avasoleimany/miniconda2/envs/paa
