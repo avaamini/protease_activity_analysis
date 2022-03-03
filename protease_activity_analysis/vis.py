@@ -1,4 +1,4 @@
-""" Collection of data visualization functions """
+""" Collection of data visualization and plotting functions. """
 import os
 import copy
 import numpy as np
@@ -16,6 +16,7 @@ from sklearn import svm, model_selection, metrics, ensemble
 from plotnine import ggplot, geom_tile, aes, scale_fill_gradient2, coord_equal, \
     themes
 from adjustText import adjust_text
+import protease_activity_analysis as paa
 
 # Set default font to Arial
 # Say, "the default sans-serif font is Arial
@@ -34,20 +35,18 @@ COLORS_EIGHT = [
     'darkslategray'
 ]
 
+### CORE PLOTTING FUNCTIONS FOR PLOTTING & VISUALIZATION ###
 
 def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
     """
     Create a plot of the covariance confidence ellipse of *x* and *y*.
-
     Args:
         x, y (array-like, shape (n, )): input data
         ax (matplotlib.axes.Axes): The axes object to draw the ellipse into
         n_std (float): The number of standard deviations to determine the
             ellipse's radiuses.
-
     Returns:
         matplotlib.patches.Ellipse
-
     Other parameters:
         kwargs : `~matplotlib.patches.Patch` properties
     """
@@ -88,7 +87,6 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
 def plot_pca(data_matrix, features, group_key, pca_groups, biplot,
     out_path, file_name, palette=COLORS_EIGHT):
     """ Principal component analysis. Plot PC1 vs PC2.
-
     Args:
         data_matrix (pandas.pivot_table): normalized data matrix
         features (array-like, str): features to use for the PCA
@@ -98,7 +96,6 @@ def plot_pca(data_matrix, features, group_key, pca_groups, biplot,
         out_path (str): path to write the plot to
         file_name (str): token key for saving the plot
         palette: list of colors for PCA
-
     Returns:
         pca_scatter (fig): PCA scatter plot of data
     """
@@ -174,7 +171,6 @@ def plot_pca(data_matrix, features, group_key, pca_groups, biplot,
 
 def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_name):
     """ Volcano plot for differential enrichment of features between two groups.
-
     Args:
         data_matrix (pd.pivot_table): normalized data matrix
         group_key (str): token key name for group comparison. Found in data_matrix
@@ -183,7 +179,6 @@ def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_na
         plex (list, str): names of the features for annotation on the volcano
         out_path (str): path to write the plot to
         file_name (str): token key for saving the plot
-
     Plots:
         Volcano plot of data, saved.
     """
@@ -270,7 +265,6 @@ def plot_volcano(data_matrix, plex, group_key, group1, group2, out_path, file_na
 def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
     cmap):
     """ Plots confusion matrix results from multiclass classification.
-
     Args:
         cm_df (pandas df): dataframe containing the results of confusion matrix
             analysis for multiclass classification
@@ -299,14 +293,12 @@ def plot_confusion_matrix(cm_df, all_classes, test_classes, out_path, file_name,
 
 def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
     """Plots mean ROC curve + standard deviation boundary from k-fold cross val.
-
     Args:
         tprs: true positive rates interpolated across linspace(0, 1, 100)
         aucs: ROC AUC for each of the cross validation trials
         out_path: path to directory to save plot
         file_name: file name for saving and title to show on the figure
         show_sd (bool): whether or not to show shading corresponding to sd
-
     """
     mean_fpr = np.linspace(0, 1, 10000)
     fig, ax = plt.subplots()
@@ -345,10 +337,8 @@ def plot_kfold_roc(tprs, aucs, out_path, file_name, show_sd=True):
 
 def plot_matrix(data_matrix):
     """ Visualizes protease activity data matrix as heatmap.
-
     Args:
         data_matrix (pandas df): normalized data matrix
-
     Returns:
         heat_map (fig): heatmap of data
     """
@@ -377,111 +367,27 @@ def plot_matrix(data_matrix):
 
     return fig
 
-def aggregate_data(data_in_paths, out_path, axis=1):
-    """ Combine multiple datasets into single data matrix.
-
-    Args:
-        data_in_paths (list of strings): path for datafiles
-        out_path (str): path to store the results
-        axis (boolean): axes of concatenation, with True/1 as grouping
-            by common substrates (horizontal) and False/0 as grouping by common
-            sample names (vertical)
-
-    Returns:
-        data_matrix (pandas.DataFrame): combined data matrix
-    """
-
-    # create variables to store the compiled data/name
-    frame = []
-    agg_name = 'Agg'
-
-    for file_path in data_in_paths:
-        # identify original file name
-        file_name = os.path.basename(file_path).split('.csv')[0]
-        # create pandas dataframe for each datafile
-        data = pd.read_csv(file_path, index_col=0, names=['',file_name])
-        # remove first row (remnants of incorrect column labels)
-        data = data.iloc[1:,:]
-
-        frame.append(data)
-        agg_name = agg_name + "_" + file_name
-
-    # combine individual dataframes from each file into single dataframe
-    agg_df = pd.concat(frame, axis=axis)
-
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
-        print('Directory created', out_path)
-
-    # export aggregated dataframe as csv file
-    data_save_path = os.path.join(out_path, f"{agg_name}.csv")
-    agg_df.to_csv(data_save_path)
-
-    return agg_df
-
-def process_data(data_matrix):
-    """ Removes data for substrates that have negative cleavage rates across
-    all samples.
-
-    Args:
-        data_matrix (pandas df): raw cleavage data for tissue samples or
-            proteases across columns and substrate across rows
-
-    Returns:
-        dropping (pandas df): data matrix without substrates of consistently
-            negative cleavage rates
-
-    """
-    dropping = []
-    for ind in data_matrix.index:
-        if all(x < 0 for x in data_matrix.loc[ind]):
-            dropping.append(ind)
-
-    return dropping
-
-def scale_data(data_matrix):
-    """ Calculates z-scores across columns (population standard deviation used).
-
-    Args:
-        data_matrix (pandas df): raw cleavage data for tissue samples or
-            proteases across columns and substrate across rows
-
-    Returns:
-        scaled_data (pandas df): data matrix of normalized values (z-scores)
-
-    """
-    # Create Scaler object
-    scaler = preprocessing.StandardScaler()
-    # Fit data on the scaler object
-    scaled_data = scaler.fit_transform(data_matrix)
-    scaled_data = pd.DataFrame(scaled_data, columns=data_matrix.columns,
-                               index=data_matrix.index)
-
-    return scaled_data
-
-def plot_heatmap(data_matrix, out_path, row_colors,  metric='euclidean',
+def plot_heatmap(data_matrix, out_path, row_colors=None, col_colors=None, center=0, metric='euclidean',
                  method='average', scale='log2'):
     """ Plot heatmap of protease activity data, with hierarchical clustering.
-
     Args:
         data_matrix (pandas df): data to visualize using the heatmap
         out_path (str): path to store the results
         row_colors (list, str): colors for labeling the samples in the heatmap,
             e.g., []'g', 'royalblue', 'orange', 'orange', 'orange', 'orange',
             'g', 'g', 'g', 'g', 'g', 'orange', 'royalblue', 'orange', 'orange']
+        col_colors (list, str): colors for labeling the columns in the heatmap,
+            e.g., []'g', 'royalblue', 'orange', 'orange', 'orange', 'orange',
+            'g', 'g', 'g', 'g', 'g', 'orange', 'royalblue', 'orange', 'orange']
+        center (float): where to set the center fo the color palette
         metric (str): Distance metric to use for the data,
-            See scipy.cluster.hierarchy.linkage documentation
+            See scipy.spatial.distance.pdist documentation
         method (str): Linkage method to use for calculating clusters,
-            See scipy.spatial.distance.pdist documentatio
+            See scipy.cluster.hierarchy.linkage documentatio
         scale (str): scaling to be performed: 'None', 'log2'
-
     Returns:
         heat (pandas.DataFrame): data matrix for the heatmap.
-
     """
-    # TODO:
-    # 1. Add color map in the matrix as the last row
-    # 2. Decide on a universal color scheme + add argument for center
 
     # Import data
     heat = data_matrix
@@ -490,32 +396,78 @@ def plot_heatmap(data_matrix, out_path, row_colors,  metric='euclidean',
     if scale == 'log2':
         heat = np.log2(heat)
 
-    # Define color labels
-    row_labels = pd.DataFrame({'Substrate Class': row_colors}, index=heat.index)
+    # Define column color labels
+    if col_colors:
+        col_labels = pd.DataFrame({'Substrate Class': col_colors}, index=heat.columns)
+
+    # Define row color labels
+    if row_colors:
+        row_labels = pd.DataFrame({'Protease Class': row_colors}, index=heat.index)
+
     # Plot heatmap
     sns.set(font_scale=1.5)
+    cmap = sns.diverging_palette(h_neg=260, h_pos=17, sep=5, s=99, l=55, as_cmap=True)
 
-    cmap = sns.diverging_palette(h_neg=240, h_pos=20, sep=15, s=99, l=50, as_cmap=True)
-    fig = sns.clustermap(heat,
-                        cmap=cmap,
-                        center=0.1,
-                        linewidth=2,
-                        linecolor='white',
-                        dendrogram_ratio=(.15, .15),
-                        figsize=(8, 8),
-                        cbar_pos=(0, 0.12, .03, .4),
-                        method=method,
-                        row_colors=row_labels,
-                        metric=metric
-                    )
-
-    fig.savefig(out_path)
+    if row_colors and col_colors:
+        fig = sns.clustermap(heat,
+                             cmap=cmap,
+                             center=center,
+                             linewidth=2,
+                             linecolor='white',
+                             dendrogram_ratio=(.15, .15),
+                             figsize=(8, 8),
+                             cbar_pos=(0, 0.12, .03, .4),
+                             method=method,
+                             row_colors=row_labels,
+                             col_colors=col_labels,
+                             metric=metric
+                             )
+    elif row_colors and not col_colors:
+        fig = sns.clustermap(heat,
+                             cmap=cmap,
+                             center=center,
+                             linewidth=2,
+                             linecolor='white',
+                             dendrogram_ratio=(.15, .15),
+                             figsize=(8, 8),
+                             cbar_pos=(0, 0.12, .03, .4),
+                             method=method,
+                             row_colors=row_labels,
+                             metric=metric
+                             )
+    elif col_colors and not row_colors:
+        fig = sns.clustermap(heat,
+                             cmap=cmap,
+                             center=center,
+                             linewidth=2,
+                             linecolor='white',
+                             dendrogram_ratio=(.15, .15),
+                             figsize=(8, 8),
+                             cbar_pos=(0, 0.12, .03, .4),
+                             method=method,
+                             col_colors=col_labels,
+                             metric=metric
+                             )
+    else:
+        fig = sns.clustermap(heat,
+                             cmap=cmap,
+                             center=center,
+                             linewidth=2,
+                             linecolor='white',
+                             dendrogram_ratio=(.15, .15),
+                             figsize=(8, 8),
+                             cbar_pos=(0, 0.12, .03, .4),
+                             method=method,
+                             metric=metric
+                             )
+    fig.savefig(os.path.join(out_path, 'heatmap.pdf'))
 
     return heat
 
+
 def plot_correlation_matrix(data_matrix, title, out_path, method = 'pearson'):
     """ Plot correlation matrix of protease activity data.
-
+    
     Args:
         data_matrix (pandas df): (normalized) cleavage data for tissue
             samples or proteases across columns and substrate across rows
@@ -523,18 +475,20 @@ def plot_correlation_matrix(data_matrix, title, out_path, method = 'pearson'):
         out_path (str): path to store the results
         method (str): Method of correlation to use for the data,
             See pandas.DataFrame.corr documentation
-
     Returns:
         corr_matrix (pandas.DataFrame): correlation coefficients for each pair
             of sample comparisons
-
     """
+    sns.set(font_scale=1.2)
     fig = plt.figure(figsize=(12,10), dpi=200, facecolor='w', edgecolor='k')
     corr_matrix = data_matrix.corr(method = method)
     sns.heatmap(corr_matrix, annot=True)
     plt.title(str(title)+' - '+method+ ' correlation')
     plt.tight_layout()
-    fig.savefig(os.path.join(out_path, title+'_corrmat_'+method+'.png'))
+
+    fig.savefig(os.path.join(out_path, title+'_corrmat_'+method+'.pdf'))
+
+    sns.set(font_scale=1.5)
 
     return corr_matrix
 
@@ -549,7 +503,6 @@ def plot_zscore_scatter(data, out_path, corr_matrix_pearson, corr_matrix_spear):
             of sample comparisons using Pearson's method
         corr_matrix_spear (pandas df): correlation coefficients for each pair
             of sample comparisons using Spearman's method
-
     """
     num_cols = len(data.columns)
 
@@ -572,11 +525,13 @@ def plot_zscore_scatter(data, out_path, corr_matrix_pearson, corr_matrix_spear):
             ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
                     verticalalignment='top', bbox=props)
             plt.tight_layout()
-            fig.savefig(os.path.join(out_path, 'scatter_' + str(data.columns[col])
-                                     + '_vs_' + str(data.columns[y])+'.png'))
+            col_i = data.columns[col]
+            col_y = data.columns[y]
+            fig.savefig(os.path.join(out_path, f'scatter_{col_i}_vs_{col_y}.pdf')
+            plt.close()
     return
 
-def plot_zscore_hist(data_matrix, out_path, b=15):
+def plot_zscore_hist(data_matrix, out_path, b=15, close_plot=True):
     """ Plot distribution of z-scores with histograms for each column
     (sample/protease).
 
@@ -585,7 +540,7 @@ def plot_zscore_hist(data_matrix, out_path, b=15):
             samples or proteases across columns and substrate across rows
         out_path (str): path to store the results
         b (int): number of bins in plotting histogram
-
+        close_plot (bool): if True close the resulting plot.
     """
 
     for col in data_matrix.columns:
@@ -595,101 +550,39 @@ def plot_zscore_hist(data_matrix, out_path, b=15):
         plt.ylabel('frequency')
         plt.title(col)
         plt.tight_layout()
-        plt.savefig(os.path.join(out_path, 'hist_'+col+'.png'))
+        plt.savefig(os.path.join(out_path, 'hist_'+col+'.pdf'))
+
+    if close_plot:
+        plt.close()
 
     return
 
-def top_n_hits(data_matrix, ind_dict, out_path, n=5):
-    """ Find top n cleaved substrates for each column (sample/protease).
-
-    Args:
-        data_matrix (pandas dataframe): (normalized) cleavage data for tissue
-            samples or proteases across columns and substrate across rows
-        ind_dict (dict): dictionary with substrate name as value and substrate
-            index in data_matrix as key
-        out_path (str): path to store the results
-        n (int): top number of substrates to display
-
-    Returns:
-        top_hits_df (pandas df): ranked list of top n substrates by cleavage rate
-
-    """
-
-    top_df = pd.DataFrame()
-
-    for c in data_matrix.columns:
-        sorted_args = [i[0] for i in sorted(enumerate(data_matrix[c]),
-                                            key=lambda x:x[1], reverse=True)]
-
-        # take first n indices
-        top_df[c] = sorted_args[:n]
-
-        # convert to probe substrate name
-        top_hits_df = top_df.replace(ind_dict)
-
-        # export list as csv file
-        data_save_path = os.path.join(out_path, f"top_hits.csv")
-        top_hits_df.to_csv(data_save_path, index=False)
-
-    return top_hits_df
-
-def threshold_substrates(data_matrix, ind_dict, out_path, threshold=1):
-    """ Ranks all cleaved probes above z-score threshold.
-
-    Args:
-        data_matrix (pandas dataframe): (normalized) cleavage data for tissue
-            samples or proteases across columns and substrate across rows
-        ind_dict (dict): dictionary with substrate name as value and substrate
-            index in data_matrix as key
-        out_path (str): path to store the results
-        threshold (float): cut-off for cleavage z-scores
-
-    Returns:
-        thresh_df (pandas df): ranked list of substrates for all cleavage rates
-            above threshold
-
-    """
-    thresh_df = pd.DataFrame()
-
-    for c in data_matrix.columns:
-
-        # find indices where values greater than threshold
-        thr_ind = np.argwhere(np.array(data_matrix[c]) > threshold)
-        thr_ind = thr_ind.flatten()
-        # list values using indices
-        zvals = data_matrix.iloc[list(thr_ind)][c]
-        # sort indices from greatest to least
-        sorted_zvals = np.argsort(-zvals)
-        # find substrate names from ordered indices
-        sorted_labels = sorted_zvals.index[sorted_zvals]
-        thr_ind_df = pd.DataFrame(sorted_labels)
-        # account for different number of substrates greater than threshold in
-            # different tissues by concatenating
-        thresh_df = pd.concat([thresh_df, thr_ind_df], axis=1)
-
-    thresh_df.columns = data_matrix.columns
-
-    # export list as csv file
-    data_save_path = os.path.join(out_path, f"hits_above_threshold.csv")
-    thresh_df.to_csv(data_save_path, index=False)
-
-    return thresh_df
-
-def plot_substrate_class_pie(thr_df, dict_df, out_path):
+def plot_substrate_class_pie(thr_df, dict_df, color_dict, out_path):
     """ Plots pie charts of the proportions of classes that cleaved substrates
     are in.
-
-    Args (TO-DO):
+    
+    Args:
         thr_df (pandas df): list of substrates that are significantly cleaved
             (above z-score threshold)
         dict_df (pandas df): substrate name with corresponding class label
+        color_dict (dict): with keys = class and values = color for class
         out_path (str): path to store the results
-
     """
-    # convert substrate name to dictionary classification
-    class_dict = dict_df.to_dict()
-    c_dict = class_dict[dict_df.columns[0]]
-    converted_df = thr_df.replace(c_dict)
+
+    # Obtain necessary dictionaries: prot_ind_map and ind_prot_map
+    prot_ind_map={}
+    ind_prot_map={}
+
+    unique_classes = list(set(dict_df[dict_df.columns[0]].values))
+    #     unique_classes
+
+    for i in range(len(unique_classes)):
+        ind_prot_map[i] = unique_classes[i]
+        prot_ind_map[unique_classes[i]] = i
+
+    # Map substrates to appropriate index-encoded classes
+    dict_df['Index'] = dict_df[dict_df.columns[0]].map(prot_ind_map)
+    converted_df = thr_df.replace(dict_df['Index'])
 
     for c in converted_df.columns:
         # extract given column
@@ -700,24 +593,25 @@ def plot_substrate_class_pie(thr_df, dict_df, out_path):
         one_column_int = one_column_noNaN.astype(int)
         # count frequency of each classification
         counts = one_column_int.value_counts()
+        l = [ind_prot_map[el] for el in counts.index]
+        col = [color_dict[el] for el in l]
         # plot
         plt.figure()
-        plt.pie(counts,labels=counts.index, autopct='%1.f%%');
+        plt.pie(counts, labels=l, colors=col, autopct='%1.f%%');
         plt.title(c)
         plt.tight_layout()
-        plt.savefig(os.path.join(out_path, c+'_classproportion.png'))
+        plt.savefig(os.path.join(out_path, c+'_class_pie.pdf'))
 
     return
 
-def specificity_analysis(data_matrix, out_path, threshold=1):
-    """ Plots tissue specificity versus cleavage efficiency.
 
+def specificity_analysis(data_matrix, out_path, threshold=1):
+    """ Plots sample (protease/tissue) specificity versus cleavage efficiency.
     Args:
-        data_matrix (pandas dataframe): raw cleavage data for tissue samples or
-            proteases across columns and substrate across rows
+        data_matrix (pandas dataframe): raw cleavage data for proteases or
+            tissue samples or across columns and substrate across rows
         out_path (str): path to store the results
         threshold (float): cut-off for z-scores for labeling on plot
-
     """
 
     # z-score by column (tissue sample/condition, cleavage efficency)
@@ -750,6 +644,304 @@ def specificity_analysis(data_matrix, out_path, threshold=1):
                 plt.annotate(txt, (x[j], y[j]), fontsize=12)
 
         plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
-                                 str(data_matrix.columns[i]) + '.png'))
+                                 str(data_matrix.columns[i]) + '.pdf'))
 
     return
+
+def plot_specificity_sample(screen, out_path, threshold=1, close_plot=True, cmap=False):
+    """ Plots tissue specificity versus cleavage efficiency.
+    Args:
+            screen (pandas df) : raw screening data
+            out_path (str): path to store the results
+            threshold (float): cut-off for z-scores for labeling on plot
+            close_plot (bool): if True, will close the generated plot
+            cmap (bool): if True, will overlay raw intensity values for the screen on scatter plot
+    """
+    data_matrix = screen
+    raw_prot_vals = data_matrix.values
+    limits = [np.min(raw_prot_vals), np.max(raw_prot_vals)]
+    prot = screen.columns
+
+    for el in prot:
+        query = el
+
+        # z-score by column (tissue sample/condition, cleavage efficency)
+        cl_z = paa.vis.scale_data(data_matrix)
+
+        # z-score by row (probe, substrate specificity)
+        dataT = data_matrix.transpose()
+        dataT = paa.vis.scale_data(dataT)
+        sp_z = dataT.transpose()
+
+        # get x and y coordinates for scatterplot
+        x = cl_z[query]
+        y = sp_z[query]
+
+        plt.figure()
+
+        # plot scatter plot with or without colormap
+        if cmap:
+            raw_query_vals = data_matrix[query].values
+            plt.scatter(x, y, c=raw_query_vals, s=60, edgecolors='grey')
+            plt.clim(limits[0], limits[1])
+            cbar = plt.colorbar()
+            cbar.set_label('Raw values in screen', fontsize=14)
+        else:
+            plt.scatter(x, y, s=60)
+
+        plt.xlabel('Cleavage efficiency', fontsize=16)
+        plt.ylabel('Specificity', fontsize=16)
+        plt.title(query, fontsize=18)
+        plt.tight_layout()
+
+        labels = data_matrix.index
+        text = []
+        for j, txt in enumerate(labels):
+            if x[j] > threshold or y[j] > threshold:
+                text.append(plt.annotate(txt, (x[j], y[j]), fontsize=12, weight='bold'))
+
+        adjust_text(text, force_points=4, arrowprops=dict(arrowstyle="-", color="k", lw=0.5))
+        plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
+                                query + '.pdf'))
+
+        if close_plot:
+            plt.close()
+
+    return
+
+def plot_specificity_substrate(screen, out_path, threshold=1, close_plot=True, cmap=False):
+    """ Plots tissue specificity versus cleavage efficiency.
+        Args:
+            screen (pandas df) : raw screening data
+            out_path (str): path to store the results
+            threshold (float): cut-off for z-scores for labeling on plot
+            close_plot (bool): if True, will close the generated plot
+            cmap (bool): if True, will overlay raw intensity values for the screen on scatter plot
+    """
+    data_matrix = screen.transpose()
+    raw_prot_vals = data_matrix.values
+    limits = [np.min(raw_prot_vals), np.max(raw_prot_vals)]
+    subs = data_matrix.columns
+
+    for el in subs:
+        query = el
+
+        # z-score by column (tissue sample/condition, cleavage efficiency)
+        cl_z = paa.vis.scale_data(data_matrix)
+
+        # z-score by row (probe, substrate specificity)
+        dataT = data_matrix.transpose()
+        dataT = paa.vis.scale_data(dataT)
+        sp_z = dataT.transpose()
+
+        # get x and y coordinates for scatterplot
+        x = cl_z[query]
+        y = sp_z[query]
+        prot_col_map = {'Metallo': 'g', 'Serine': 'orange', 'Aspartic': 'k', 'Cysteine': 'b', 'Other': 'grey'}
+
+        plt.figure()
+
+        if cmap:
+            raw_query_vals = data_matrix[query].values
+            plt.scatter(x, y, c=raw_query_vals, s=60, edgecolors='grey')
+            plt.clim(limits[0], limits[1])
+            cbar = plt.colorbar()
+            cbar.set_label('Raw values in screen', fontsize=14)
+        else:
+            plt.scatter(x, y, s=60)
+
+        plt.xlabel('Cleavage efficiency', fontsize=16)
+        plt.ylabel('Specificity', fontsize=16)
+        plt.title(query, fontsize=18)
+        plt.tight_layout()
+
+        labels = data_matrix.index
+        text = []
+        for j, txt in enumerate(labels):
+            if x[j] > threshold or y[j] > threshold:
+                text.append(plt.annotate(txt, (x[j], y[j]), fontsize=12,
+                            color=prot_col_map[paa.protease.classify_protease(txt)], weight='bold'))
+
+        adjust_text(text, force_points=4, arrowprops=dict(arrowstyle="-", color="k", lw=0.5))
+        plt.savefig(os.path.join(out_path, 'specificity_analysis_' +
+                                 query + '.pdf'))
+
+        if close_plot:
+            plt.close()
+
+    return
+
+def hist(val, keys, x_label, y_label, title, identity, out_dir, close_plot=True):
+    """ Specific histogram plotting function for database.py
+    Args:
+        val (list, array): Contains values those frequency to be plotted
+        keys (list, str): list of legend labels
+        x_label (str): x_label of histogram
+        y_label (str): y_label of histogram
+        title (str): title of histogram
+        identity (str): identity of protease or susbtrate
+        out_dir (str): output directory to save files to
+        close_plot (bool): if True, will close the generated plot
+    """
+    fig, ax = plt.subplots()
+    n, bins, patches = plt.hist(val, alpha=0.75)
+    plt.title(title+' '+identity)
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
+    plt.legend(keys)
+    plt.show()
+
+    if out_dir:
+        fig.savefig(out_dir + '/' + identity + '_histogram_zscore.pdf')
+
+    if close_plot:
+        plt.close()
+
+    return
+
+### HELPER FUNCTIONS FOR PLOTTING & VISUALIZATION ###
+
+def aggregate_data(data_in_paths, out_path, name, axis=1):
+    """ Combine multiple datasets into single data matrix.
+    Args:
+        data_in_paths (list of strings): path for datafiles
+        out_path (str): path to store the results
+        name (str): name for file
+        axis (boolean): axes of concatenation, with True/1 as grouping
+            by common substrates (horizontal) and False/0 as grouping by common
+            sample names (vertical)
+    Returns:
+        data_matrix (pandas.DataFrame): combined data matrix
+    """
+
+    # create variables to store the compiled data/name
+    frame = []
+
+    for file_path in data_in_paths:
+        # identify original file name
+        file_name = os.path.basename(file_path).split('.csv')[0]
+        # create pandas dataframe for each datafile
+        data = pd.read_csv(file_path, index_col=0, names=['',file_name])
+        # remove first row (remnants of incorrect column labels)
+        data = data.iloc[1:,:]
+
+        frame.append(data)
+
+    # combine individual dataframes from each file into single dataframe
+    agg_df = pd.concat(frame, axis=axis)
+
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+        print('Directory created', out_path)
+
+    # export aggregated dataframe as csv file
+    data_save_path = os.path.join(out_path, f"{name}.csv")
+    agg_df.to_csv(data_save_path)
+
+    return agg_df
+
+def process_data(data_matrix):
+    """ Removes data for substrates that have negative cleavage rates across
+    all samples.
+    Args:
+        data_matrix (pandas df): raw cleavage data for tissue samples or
+            proteases across columns and substrate across rows
+    Returns:
+        dropping (pandas df): data matrix without substrates of consistently
+            negative cleavage rates
+    """
+    dropping = []
+    for ind in data_matrix.index:
+        if all(x < 0 for x in data_matrix.loc[ind]):
+            dropping.append(ind)
+
+    return dropping
+
+def scale_data(data_matrix):
+    """ Calculates z-scores across columns (population standard deviation used).
+    Args:
+        data_matrix (pandas df): raw cleavage data for tissue samples or
+            proteases across columns and substrate across rows
+    Returns:
+        scaled_data (pandas df): data matrix of normalized values (z-scores)
+    """
+    # Create Scaler object
+    scaler = preprocessing.StandardScaler()
+    # Fit data on the scaler object
+    scaled_data = scaler.fit_transform(data_matrix)
+    scaled_data = pd.DataFrame(scaled_data, columns=data_matrix.columns,
+                               index=data_matrix.index)
+
+    return scaled_data
+
+def top_n_hits(data_matrix, ind_dict, out_path, n=5):
+    """ Find top n cleaved substrates for each column (sample/protease).
+
+    Args:
+        data_matrix (pandas dataframe): (normalized) cleavage data for tissue
+            samples or proteases across columns and substrate across rows
+        ind_dict (dict): dictionary with substrate name as value and substrate
+            index in data_matrix as key
+        out_path (str): path to store the results
+        n (int): top number of substrates to display
+    Returns:
+        top_hits_df (pandas df): ranked list of top n substrates by cleavage rate
+    """
+
+    top_df = pd.DataFrame()
+
+    for c in data_matrix.columns:
+        sorted_args = [i[0] for i in sorted(enumerate(data_matrix[c]),
+                                            key=lambda x:x[1], reverse=True)]
+
+        # take first n indices
+        top_df[c] = sorted_args[:n]
+
+        # convert to probe substrate name
+        top_hits_df = top_df.replace(ind_dict)
+
+        # export list as csv file
+        data_save_path = os.path.join(out_path, f"top_hits.csv")
+        top_hits_df.to_csv(data_save_path, index=False)
+
+    return top_hits_df
+
+def threshold_substrates(data_matrix, ind_dict, out_path, threshold=1):
+    """ Ranks all cleaved probes above z-score threshold.
+
+    Args:
+        data_matrix (pandas dataframe): (normalized) cleavage data for tissue
+            samples or proteases across columns and substrate across rows
+        ind_dict (dict): dictionary with substrate name as value and substrate
+            index in data_matrix as key
+        out_path (str): path to store the results
+        threshold (float): cut-off for cleavage z-scores
+    Returns:
+        thresh_df (pandas df): ranked list of substrates for all cleavage rates
+            above threshold
+    """
+    thresh_df = pd.DataFrame()
+
+    for c in data_matrix.columns:
+
+        # find indices where values greater than threshold
+        thr_ind = np.argwhere(np.array(data_matrix[c]) > threshold)
+        thr_ind = thr_ind.flatten()
+        # list values using indices
+        zvals = data_matrix.iloc[list(thr_ind)][c]
+        # sort indices from greatest to least
+        sorted_zvals = np.argsort(-zvals)
+        # find substrate names from ordered indices
+        sorted_labels = sorted_zvals.index[sorted_zvals]
+        thr_ind_df = pd.DataFrame(sorted_labels)
+        # account for different number of substrates greater than threshold in
+            # different tissues by concatenating
+        thresh_df = pd.concat([thresh_df, thr_ind_df], axis=1)
+
+    thresh_df.columns = data_matrix.columns
+
+    # export list as csv file
+    data_save_path = os.path.join(out_path, f"hits_above_threshold.csv")
+    thresh_df.to_csv(data_save_path, index=False)
+
+    return thresh_df
