@@ -16,7 +16,7 @@ class KineticDataset:
     """ Dataset of kinetic protease activity measurements. """
     def __init__(self, data_path, fc_time, linear_time, out_dir, blank=0):
         self.data_path = data_path
-        raw = pd.read_excel(data_path)
+        raw = pd.read_excel(data_path, engine='openpyxl')
         self.raw = raw
 
         self.fc_time = fc_time
