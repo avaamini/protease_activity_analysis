@@ -94,16 +94,19 @@ class SyneosDataset:
         self.raw_data_matrix = data_matrix
         return data_matrix
 
-    def process_syneos_data(self, features_to_use, stock_id, sample_type_to_use, sample_ID_to_use, sample_ID_to_exclude):
+    def process_syneos_data(self, features_to_use, stock_id,
+        sample_type_to_use=None, sample_ID_to_use=None, sample_ID_to_exclude=None):
         """ Process syneos data. Keep relevant features and samples.
 
         Args:
             features_to_use (list, str): reporters to include
-            stock_id (list, str): Sample Type ID for stock to use for normalization
-            sample_type_to_use (list, str): sample types to use
+            stock_id (list, str): Sample Type ID for stock to use to normalize
+            sample_type_to_use (list, str): sample types to use. default=None.
+                if None, use all present sample types.
             sample_ID_to_use (str): contains (sub)string indicator of samples to
                 include, e.g. "2B" or "2hr" to denote 2hr samples. default=None
-            sample_ID_to_exclude (list, str): specific sample IDs to exclude
+            sample_ID_to_exclude (list, str): specific sample IDs to exclude.
+                default=None.
 
         Returns:
             filtered_data_matrix (pandas.df): processed and filtered matrix of
@@ -127,12 +130,12 @@ class SyneosDataset:
         # only include the reporters that are actually part of the panel
         new_matrix = pd.DataFrame(self.raw_data_matrix[features_to_use])
 
-        # eliminate those samples that have two or more 0 values for the reporters
+        # eliminate samples that have two or more 0 values for the reporters
         zero_rows = np.array(new_matrix.apply(eliminate_zero_row, axis=1))
         filtered_matrix = new_matrix[~zero_rows]
 
         # normalize everything to stock
-        if 'Stock Type' in filtered_matrix.index.names: # multiple stocks specified
+        if 'Stock Type' in filtered_matrix.index.names: # multiple stocks
             for stock in stock_id:
                 stock_values = filtered_matrix.loc['Stock'].loc[stock].to_numpy()
                 # find the samples matching the current stock and normalize
@@ -151,15 +154,18 @@ class SyneosDataset:
 
         # eliminate those samples that do not meet the sample type name criterion
         if sample_type_to_use != None:
-            filtered_matrix = filtered_matrix[filtered_matrix['Sample Type'].isin(sample_type_to_use)]
+            filtered_matrix = filtered_matrix[ \
+                filtered_matrix['Sample Type'].isin(sample_type_to_use)]
 
         # eliminate those samples that do not meet the sample ID name criterion
         if sample_ID_to_use != None:
-            filtered_matrix = filtered_matrix[filtered_matrix['Sample ID'].str.contains(sample_ID_to_use)]
+            filtered_matrix = filtered_matrix[ \
+                filtered_matrix['Sample ID'].str.contains(sample_ID_to_use)]
 
         # eliminate those samples that are specified for exclusion
         if sample_ID_to_exclude != None:
-            filtered_matrix = filtered_matrix[~filtered_matrix['Sample ID'].isin(sample_ID_to_exclude)]
+            filtered_matrix = filtered_matrix[ \
+                ~filtered_matrix['Sample ID'].isin(sample_ID_to_exclude)]
 
         filtered_matrix = filtered_matrix.set_index(['Sample Type', 'Sample ID'])
         filtered_matrix.to_csv(
@@ -195,7 +201,7 @@ class SyneosDataset:
 
     def standard_scale_matrix(self, axis=0):
         """ Perform z-scoring on the data matrix according to the specified axis.
-        Defaults to z-scoring such that values for individual features are zero mean
+        Defaults to z-scoring, values for individual features are mean 0
         and standard deviation of 1, i.e., feature scaling with axis=0.
 
         Args:
@@ -330,7 +336,7 @@ class SyneosDataset:
         """ Create a dataset for multiclass classification.
         Args:
             classes_include (list, str): list of labels for dataset.
-                this should include the test_classes if test_classes are desired.
+                this should include test_classes if test_classes are desired.
             test_types (list, str): list of labels to be held out for testing,
                 if any
             use_mean (bool): whether to use mean scaled data
@@ -338,7 +344,7 @@ class SyneosDataset:
         Returns:
             X (np array): matrix of size n (samples) x m (features) of the data
             Y (np array): matrix of size n (samples) x k (classes)
-            data (pd dataframe): pandas data frame containing X, Y, class labels, and
+            data (pd dataframe): data frame containing X, Y, class labels,
                 sample IDs
             X_test (np array): matrix of size n x m of the test data
             Y_test (np array): matrix of size n x k containing the true
@@ -353,7 +359,8 @@ class SyneosDataset:
         sample_id = data.index.get_level_values('Sample ID').to_numpy()
 
         # eliminate the data that is not in the classes_include
-        class_inds = [i for i, val in enumerate(class_labels) if val in classes_include]
+        class_inds = [ \
+            i for i, val in enumerate(class_labels) if val in classes_include]
         class_labels = class_labels[class_inds]
 
         # prepare the headers
@@ -411,16 +418,16 @@ class SyneosDataset:
             X (np array): matrix of size n (samples) x m (features) of the data
                 for training/validation
             Y (np array): matrix of size n x 1 containing the class labels
-                for the samples in the dataset, for binary classification problem.
+                for the samples in the dataset, for binary classification.
                 for training/validation
-            data (pd dataframe): pandas data frame containing X, Y, Sample Type, and
+            data (pd dataframe): pandas data frame containing X, Y, Sample Type,
                 Sample Type ID
             X_test (np array): matrix of size n x m of the data. for test.
                 Defaults to None if test_classes=None
             Y_test (np array): matrix of size n x 1 containing the class labels
                 labels for the samles in the dataset, for binary classification
                 problems. for testing.
-            data_test (pd dataframe): pandas data frame containing X_test, Y_test,
+            data_test (pd dataframe): data frame containing X_test, Y_test,
                 Sample Type, and Sample Type ID
         """
         data = self.data_matrix
@@ -432,11 +439,13 @@ class SyneosDataset:
 
         # convert positive classes if necessary
         if pos_classes != None:
-            pos_inds = [i for i, val in enumerate(sample_type) if val in pos_classes]
+            pos_inds = [ \
+                i for i, val in enumerate(sample_type) if val in pos_classes]
             class_labels[pos_inds] = pos_class
         # convert negative classes if necessary
         if neg_classes != None:
-            neg_inds = [i for i, val in enumerate(sample_type) if val in neg_classes]
+            neg_inds = [ \
+                i for i, val in enumerate(sample_type) if val in neg_classes]
             class_labels[neg_inds] = neg_class
 
         # eliminate the data that is not in the neg_class, the pos_class
@@ -452,7 +461,7 @@ class SyneosDataset:
         if 'Stock Type' in data.keys():
             data_index_headers.append('Stock Type')
 
-        # separate into the train/val dataset and the test dataset (consisting of
+        # separate into the train/val dataset and the test dataset (consists of
         #   specified sample types
         X_test = None
         Y_test = None

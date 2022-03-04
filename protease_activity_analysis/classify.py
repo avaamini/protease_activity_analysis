@@ -217,7 +217,7 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
         X_train, X_val, Y_train, Y_val = train_test_split(
             X, Y, test_size=0.2, shuffle=True, stratify=Y
         )
-        
+
         # feature scaling for standardization. compute scaler on training set.
         if standard_scale:
             scaler = get_scaler(X_train)
@@ -251,7 +251,7 @@ def classify_kfold_roc(X, Y, model_type, kernel, k_splits, pos_class,
             scores_test.append(score_test)
             tprs_test.append(interp_tpr_test)
             aucs_test.append(auc_test)
-  
+
     ## TODO: could possibly change this to a data frame
     val_dict = {"probs": probs_val, "scores": scores_val,
         "tprs": tprs_val, "aucs": aucs_val}
@@ -347,10 +347,11 @@ def rfe_cv(X, Y, class_type, k_splits, out_path, save_name, standard_scale=False
             model, X, Y, scoring='roc_auc', cv=cv, error_score='raise'
         )
         return accuracies, aucs
-    
+
     # evaluate the models and store results
     res_accuracies, res_aucs, names = list(), list(), list()
-    mean_accuracies, mean_aucs, std_accuracies, std_aucs = list(), list(), list(), list()
+    mean_accuracies, mean_aucs, std_accuracies, std_aucs = \
+        list(), list(), list(), list()
     num_features = X.shape[1]
     classifiers = get_models(classifier, num_features)
 
