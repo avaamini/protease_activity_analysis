@@ -58,7 +58,7 @@ class SyneosDataset:
         usecols = self.use_cols # HARDCODED
 
         sheet_data = pd.read_excel(data_path,
-            sheet_names, header=1, usecols=usecols)
+            sheet_names, header=1, usecols=usecols, engine='openpyxl')
 
         df = None
         indices = ['Sample Type', 'Sample ID'] #HARDCODED
@@ -69,13 +69,13 @@ class SyneosDataset:
                 df = df.append(data)
 
         # read SampleType file
-        sample_to_type = pd.read_excel(id_path, header=0, index_col=0)
+        sample_to_type = pd.read_excel(id_path, header=0, index_col=0, engine='openpyxl')
         sample_type = sample_to_type.reindex(df["Sample ID"])
         df['Sample Type'] = sample_type.values
 
         # read Stock file if it is specified for the normalization
         if stock_path is not None:
-            stock_info = pd.read_excel(stock_path, header=0, index_col=0)
+            stock_info = pd.read_excel(stock_path, header=0, index_col=0, engine='openpyxl')
             stock = stock_info.reindex(df["Sample ID"])
             df['Stock Type'] = stock.values
             indices.append('Stock Type')
