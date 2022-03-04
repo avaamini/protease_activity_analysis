@@ -52,6 +52,5 @@ In this demonstration, you are going to see how to: 1) Convert raw mass spectrom
 This data comes from Kirkpatrick et al., Science Translational Medicine (2020). The data is from healthy and lung cancer mice that were injected with a 14-plex activity-based nanosensor panel at 5 weeks, 7.5 weeks, and 10.5 weeks after tumor initiation.
 
 <p align="center">
-  <img src="img/substrate_protease.png" alt="sub_prot" width="800" />
+  <img src="img/in_vivo.png" alt="vivo" width="800" />
 </p>
->>>>>>> 9ddf0455c96e1e0675a0c92a7356ea4146b99815
