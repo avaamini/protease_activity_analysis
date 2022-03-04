@@ -18,5 +18,7 @@ dependencies:
     - xlrd
     - fuzzywuzzy
     - python-Levenshtein
+    - fastcluster
+    - colorama
 
 prefix: /Users/avasoleimany/miniconda2/envs/paa
