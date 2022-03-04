@@ -43,7 +43,7 @@ def species_to_species(species_1, species_2, protease):
         KeyError: if query protease is not valid for species_1
     """
     data_path = 'data/screens/PAA/Species_map.xlsx'
-    spec_map = pd.read_excel(data_path, header=0)
+    spec_map = pd.read_excel(data_path, header=0, engine='openpyxl')
 
     keys = spec_map[species_1].to_list()
     vals = spec_map[species_2].to_list()
