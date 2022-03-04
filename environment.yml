@@ -20,5 +20,6 @@ dependencies:
     - python-Levenshtein
     - fastcluster
     - colorama
+    - notebook
 
 prefix: /Users/avasoleimany/miniconda2/envs/paa
