@@ -6,6 +6,7 @@
 <h4 align="center">Developed and maintained by: Ava Soleimany, Carmen Martin Alonso, Melodi Anahtar, Cathy Wang, Sangeeta Bhatia</h4> -->
 
 <p align="center"> [<b><a href="">Paper: coming soon!</a></b>] &emsp; [<b><a href="#citation">Citation: coming soon!</a></b>] </p>
+<p align="center"> [<b><a href="https://lmrt.mit.edu">LMRT at MIT</a></b>] </p>
 
 # Protease Activity Analysis (PAA)
 Analyzing the activity of proteases and their substrates is critical to defining the
