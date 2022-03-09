@@ -1,0 +1,26 @@
+authors: 
+  -
+    family-names: Soleimany
+    given-names: Ava
+    orcid: "https://orcid.org/0000-0002-8601-6040"
+  -
+    family-names: Martin Alonso
+    given-names: Carmen
+    orcid: "https://orcid.org/0000-0001-6581-7909"
+  -
+    family-names: Anahtar
+    given-names: Melodi
+    orcid: https://orcid.org/0000-0003-3475-3871
+  -
+    family-names: Wang
+    given-names: Cathy
+    orcid: https://orcid.org/0000-0003-0910-4562
+  -
+    family-names: Bhatia
+    given-names: Sangeeta
+    orcid: "https://orcid.org/0000-0002-1293-2097"
+cff-version: "1.1.0"
+doi: "10.1101/2022.03.07.483375"
+message: "If you use this software, please cite it using these metadata."
+repository-code: "https://github.com/apsoleimany/protease_activity_analysis"
+title: "Protease Activity Analysis: A Toolkit for Analyzing Enzyme Activity Data"
