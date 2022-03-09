@@ -5,8 +5,8 @@
 <h1 align="center">Protease Activity Analysis</h1>
 <h4 align="center">Developed and maintained by: Ava Soleimany, Carmen Martin Alonso, Melodi Anahtar, Cathy Wang, Sangeeta Bhatia</h4> -->
 
-<p align="center"> [<b><a href="">Paper: coming soon!</a></b>] &emsp; [<b><a href="#citation">Citation: coming soon!</a></b>] </p>
-<p align="center"> [<b><a href="https://lmrt.mit.edu">LMRT at MIT</a></b>] </p>
+<p align="center"> [<b><a href="https://www.biorxiv.org/content/10.1101/2022.03.07.483375v1">Paper</a></b>] &emsp; [<b><a href="#citation">Citation</a></b>] </p>
+<p align="center"> [<b><a href="https://lmrt.mit.edu">Laboratory for Multiscale Regenerative Technologies</a></b>] </p>
 
 # Protease Activity Analysis (PAA)
 Analyzing the activity of proteases and their substrates is critical to defining the
@@ -58,17 +58,15 @@ To get started using PAA, we recommend you select a tutorial in the `tutorials` 
 
 ## Citation
 
-If you use the code from the repository, please cite the accompanying [paper]():
+If you use the code from the repository, please cite the accompanying [paper](https://www.biorxiv.org/content/10.1101/2022.03.07.483375v1):
 ```
-Coming soon!
+@article{Soleimany2022,
+	title = {Protease Activity Analysis: A Toolkit for Analyzing Enzyme Activity Data},
+	author = {Soleimany, Ava P and Martin Alonso, Carmen and Anahtar, Melodi N and Wang, Cathy S and Bhatia, Sangeeta N},
+	journal = {bioRxiv},
+	year = {2022}
+}
 ```
-<!-- @article{soleimany2021evidential,
-  title={Evidential Deep Learning for Guided Molecular Property Prediction and Discovery},
-  author={Soleimany, Ava P and Amini, Alexander and Goldman, Samuel and Rus, Daniela and Bhatia, Sangeeta and Coley, Connor},
-  journal={ACS Central Science},
-  year={2021},
-  publisher={ACS Publications}
-} -->
 
 ## Contributing
 Code should be written in compliance with the [Google Python style guide](http://google.github.io/styleguide/pyguide.html) with [Google style docstrings](http://queirozf.com/entries/python-docstrings-reference-examples#google-style).
