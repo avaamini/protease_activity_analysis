@@ -22,4 +22,3 @@ dependencies:
     - colorama
     - notebook
 
-prefix: /Users/avasoleimany/miniconda2/envs/paa
